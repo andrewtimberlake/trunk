@@ -43,6 +43,9 @@ defmodule Trunk.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      {:briefly, "~> 0.3.0"},
+
+      {:ex_doc, ">= 0.0.0", only: :dev},
     ]
   end
 end
