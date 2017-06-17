@@ -48,12 +48,13 @@ defmodule TrunkTest do
 
   describe "store/1" do
     test "store", %{output_path: output_path} do
-      {:ok, %Trunk.State{}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"))
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, %Trunk.State{}} = TestTrunk.store(original_file)
       # |> IO.inspect
 
-      assert File.exists?(Path.join(output_path, "coffee.jpg"))
-      assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
-      assert File.exists?(Path.join(output_path, "coffee_thumb.png"))
+      assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.png"))
       assert File.exists?(Path.join(output_path, "coffee.pdf"))
     end
   end
@@ -160,5 +161,10 @@ defmodule TrunkTest do
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :original, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee_thumb.jpg"
     end
+  end
+
+  defp geometry(path) do
+    {file_info, 0} = System.cmd("identify", [path], stderr_to_stdout: true)
+    hd(Regex.run(~r/(\d+)x(\d+)/, file_info))
   end
 end
