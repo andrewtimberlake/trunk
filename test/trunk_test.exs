@@ -96,21 +96,69 @@ defmodule TrunkTest do
     end)
   end
 
-  test "url", %{output_path: output_path} do
-    assert TestTrunk.url(%{filename: "coffee.jpg"}) == "coffee.jpg"
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, :png_thumb) == "coffee_thumb.png"
+  describe "url/1" do
+    test "with a map" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}) == "coffee.jpg"
+    end
 
-    # With just a file name
-    assert TestTrunk.url("coffee.jpg", path: output_path) == "coffee.jpg"
-    assert TestTrunk.url("coffee.jpg", :thumb, path: output_path) == "coffee_thumb.jpg"
+    test "with just a filename" do
+      assert TestTrunk.url("coffee.jpg") == "coffee.jpg"
+    end
   end
 
-  test "url with scope", %{output_path: output_path} do
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}) == "42/coffee.jpg"
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :png_thumb, path: output_path) == "42/coffee_thumb.png"
+  describe "url/2" do
+    test "with a map and a version" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, :png_thumb) == "coffee_thumb.png"
+    end
 
-    # With just a file name
-    assert TestTrunk.url("coffee.jpg", %{id: 42}, path: output_path) == "42/coffee.jpg"
-    assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, path: output_path) == "42/coffee_thumb.jpg"
+    test "with a map and a scope" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}) == "42/coffee.jpg"
+    end
+
+    test "with a map and options" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/coffee.jpg"
+    end
+
+    test "with just a filename and a version" do
+      assert TestTrunk.url("coffee.jpg", :thumb) == "coffee_thumb.jpg"
+    end
+
+    test "with just a filename and a scope" do
+      assert TestTrunk.url("coffee.jpg", %{id: 42}) == "42/coffee.jpg"
+    end
+
+    test "with just a filename and options" do
+      assert TestTrunk.url("coffee.jpg", storage_opts: [base_uri: "http://example.com"]) == "http://example.com/coffee.jpg"
+    end
+  end
+
+  describe "url/3" do
+    test "with a map, a version, and options" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, :png_thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/coffee_thumb.png"
+    end
+
+    test "with a map, a scope, and options" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
+    end
+
+    test "with just a filename, a version, and options" do
+      assert TestTrunk.url("coffee.jpg", :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/coffee_thumb.jpg"
+    end
+
+    test "with just a filename, a scope, and options" do
+      assert TestTrunk.url("coffee.jpg", %{id: 42}, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
+    end
+  end
+
+  describe "url/4" do
+    test "with a map" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :original, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :png_thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee_thumb.png"
+    end
+
+    test "with just a filename" do
+      assert TestTrunk.url("coffee.jpg", %{id: 42}, :original, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
+      assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee_thumb.jpg"
+    end
   end
 end
