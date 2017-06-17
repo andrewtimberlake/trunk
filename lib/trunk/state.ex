@@ -1,5 +1,6 @@
 defmodule Trunk.State do
-  defstruct ~w(module file opts filename extname rootname save_path versions async version_timeout scope storage storage_opts)a
+  defstruct ~w(module file opts filename rootname extname versions async version_timeout scope storage storage_opts)a
+  @type t :: %__MODULE__{module: atom, filename: String.t, rootname: String.t, extname: String.t, versions: list, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: list}
 
   def init(%{} = info, scope, opts) do
     filename = info[:filename]
