@@ -18,7 +18,7 @@ defmodule Trunk do
         filename = Path.basename(file)
         state = State.init(%{file: file, filename: filename, module: __MODULE__}, scope, opts)
 
-        Trunk.Processor.save(state)
+        Trunk.Processor.store(state)
       end
 
       # def url(info, scope \\ nil, version \\ :original, opts \\ [])
@@ -46,6 +46,8 @@ defmodule Trunk do
         Trunk.Processor.generate_url(state, version)
       end
 
+      # Default implementations of callback functions
+
       def filename(%{filename: filename}, :original), do: filename
       def filename(%{rootname: rootname, extname: extname}, version),
         do: "#{rootname}_#{version}#{extname}"
@@ -57,6 +59,77 @@ defmodule Trunk do
       defoverridable transform: 2, filename: 2, storage_dir: 2
     end
   end
+
+  @type scope :: map | struct
+  @type opts :: Keyword.t
+  @type version :: atom
+  @type file :: String.t | Plug.Upload.t | %{filename: String.t, path: Path.t} | %{filename: String.t, binary: binary}
+
+  @doc ~S"""
+  Stores the supplied file.
+
+  Calls `c:store/3` with `store(file, nil, [])`
+  """
+  @callback store(file) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+
+  @doc ~S"""
+  Stores the supplied file.
+
+  Calls `c:store/3` with `store(file, nil, opts)`
+  """
+  @callback store(file, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+
+  @doc ~S"""
+  Stores the supplied file after running it through the processing pipeline.
+
+  It returns an `{:ok, %Trunk.State{}}` tuple on success and `{:error, %Trunk.State{}}` tuple if an error occurred anywhere in the processing pipeline.
+
+  - `file` - the file to store.
+    - This can be a full path to file, or
+    - A map with `:filename` and `:path` keys (e.g. `%Plug.Upload{}`), or
+    - A map with `:filename` and `:binary` keys (e.g. `%{filename: "myfile.jpg", binary: <<…>>}`)
+  - `scope` - (optional) a map or struct that will help when generating the filename and storage directory for saving the file
+  - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
+  """
+  @callback store(file, scope, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+
+  @doc ~S"""
+  Generates a URL for the given information.
+
+  Calls `c:url/4` with `url(info, nil, :original, [])`
+  """
+  @callback url(info :: map) :: String.t
+
+  @doc ~S"""
+  Generates a URL for the given information.
+
+  Calls `c:url/4` with `url(info, nil, :original, opts)`
+  """
+  @callback url(info :: map, opts) :: String.t
+
+  @doc ~S"""
+  Generates a URL for the given information.
+
+  - With a `version`, calls `c:url/4` with `url(info, nil, version, [])`
+  - With a `scope`, calls `c:url/4` with `url(info, scope, :original, [])`
+  """
+  @callback url(info :: map, version | scope) :: String.t
+
+  @doc ~S"""
+  Generates a URL for the given information.
+
+  - With a `version`, calls `c:url/4` with `url(info, nil, version, opts)`
+  - With a `scope`, calls `c:url/4` with `url(info, scope, :original, opts)`
+  """
+  @callback url(info :: map, version | scope, opts) :: String.t
+  @doc ~S"""
+  Generates a URL for the given information.
+  - `info` - The base info needed to identify the file. Minimum is `%{filename: "file.ext"}`
+  - `scope` - The scope object
+  - `version` - The file version to which the URL must point
+  - `opts` - Override options.
+  """
+  @callback url(info :: map, scope, version, opts) :: String.t
 
   @doc ~S"""
   Generates the filename to be used for the specified version.
@@ -125,6 +198,9 @@ defmodule Trunk do
     do: {:convert, "-strip -thumbnail 200x200>", :jpg}
   ```
   In this case the temporary file generated for the transformation would have a .jpg extension.
+
+  ## Note:
+  Returning an instruction with an extension will change the extension of the temporary file used in the transformation but will not affect the filename during save. That still needs to be done in `c:filename/2`
   """
   @callback transform(state :: Trunk.State.t, version :: atom) :: nil | {command, args} | {command, args, ext}
 end

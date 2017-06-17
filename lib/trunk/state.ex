@@ -1,6 +1,6 @@
 defmodule Trunk.State do
-  defstruct ~w(module file opts filename rootname extname versions async version_timeout scope storage storage_opts)a
-  @type t :: %__MODULE__{module: atom, filename: String.t, rootname: String.t, extname: String.t, versions: list, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: list}
+  defstruct ~w(module file opts filename rootname extname versions async version_timeout scope storage storage_opts errors)a
+  @type t :: %__MODULE__{module: atom, filename: String.t, rootname: String.t, extname: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t}
 
   def init(%{} = info, scope, opts) do
     filename = info[:filename]
@@ -20,6 +20,12 @@ defmodule Trunk.State do
       storage: Keyword.fetch!(opts, :storage),
       storage_opts: Keyword.fetch!(opts, :storage_opts),
       scope: scope,
+      errors: nil,
     }
+  end
+
+  def put_error(%__MODULE__{errors: errors} = state, version, stage, error) do
+    errors = Map.put(errors || %{}, version, {stage, error})
+    %{state | errors: errors}
   end
 end
