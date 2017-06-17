@@ -3,9 +3,10 @@ defmodule TrunkTest do
   doctest Trunk
 
   defmodule TestTrunk do
+    output_path = Path.join(__DIR__, "output")
     use Trunk, versions: [:original, :thumb, :png_thumb],
-               storage: :filesystem,
-               storage_opts: %{path: "output"}
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: unquote(output_path)]
 
     def filename(%{rootname: rootname, extname: extname}, :thumb),
       do: rootname <> "_thumb" <> extname
@@ -38,8 +39,8 @@ defmodule TrunkTest do
   end
 
   test "store", %{output_path: output_path} do
-    {:ok, %Trunk.State{}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"), path: output_path)
-    |> IO.inspect
+    {:ok, %Trunk.State{}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"))
+    # |> IO.inspect
 
     assert File.exists?(Path.join(output_path, "coffee.jpg"))
     assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
@@ -47,27 +48,27 @@ defmodule TrunkTest do
   end
 
   test "store with scope based directory", %{output_path: output_path} do
-    {:ok, _state} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"), %{id: 42}, path: output_path)
-    |> IO.inspect
+    {:ok, _state} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"), %{id: 42})
+    # |> IO.inspect
 
     assert File.exists?(Path.join(output_path, "42/coffee.jpg"))
   end
 
   test "url", %{output_path: output_path} do
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, path: output_path) == Path.join(output_path, "coffee.jpg")
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, :png_thumb, path: output_path) == Path.join(output_path, "coffee_thumb.png")
+    assert TestTrunk.url(%{filename: "coffee.jpg"}) == "coffee.jpg"
+    assert TestTrunk.url(%{filename: "coffee.jpg"}, :png_thumb) == "coffee_thumb.png"
 
     # With just a file name
-    assert TestTrunk.url("coffee.jpg", path: output_path) == Path.join(output_path, "coffee.jpg")
-    assert TestTrunk.url("coffee.jpg", :thumb, path: output_path) == Path.join(output_path, "coffee_thumb.jpg")
+    assert TestTrunk.url("coffee.jpg", path: output_path) == "coffee.jpg"
+    assert TestTrunk.url("coffee.jpg", :thumb, path: output_path) == "coffee_thumb.jpg"
   end
 
   test "url with scope", %{output_path: output_path} do
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, path: output_path) == Path.join(output_path, "42/coffee.jpg")
-    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :png_thumb, path: output_path) == Path.join(output_path, "42/coffee_thumb.png")
+    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}) == "42/coffee.jpg"
+    assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :png_thumb, path: output_path) == "42/coffee_thumb.png"
 
     # With just a file name
-    assert TestTrunk.url("coffee.jpg", %{id: 42}, path: output_path) == Path.join(output_path, "42/coffee.jpg")
-    assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, path: output_path) == Path.join(output_path, "42/coffee_thumb.jpg")
+    assert TestTrunk.url("coffee.jpg", %{id: 42}, path: output_path) == "42/coffee.jpg"
+    assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, path: output_path) == "42/coffee_thumb.jpg"
   end
 end
