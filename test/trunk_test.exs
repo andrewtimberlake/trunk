@@ -8,9 +8,9 @@ defmodule TrunkTest do
                storage: Trunk.Storage.Filesystem,
                storage_opts: [path: unquote(output_path)]
 
-    def filename(%{rootname: rootname, extname: extname}, :thumb),
+    def filename(%Trunk.State{rootname: rootname, extname: extname}, :thumb),
       do: rootname <> "_thumb" <> extname
-    def filename(%{rootname: rootname}, :png_thumb),
+    def filename(%Trunk.State{rootname: rootname}, :png_thumb),
       do: rootname <> "_thumb.png"
     def filename(junk, version), do: super(junk, version)
 
@@ -20,12 +20,10 @@ defmodule TrunkTest do
       do: {:convert, "-strip -thumbnail 200x200>", :png} # The file is converted before asking for the filename (so you can be really fancy)
     def transform(junk, version), do: super(junk, version)
 
-    def storage_dir(%{scope: %{id: id}} = state, version),
+    def storage_dir(%Trunk.State{scope: %{id: id}}, _version),
       do: "#{id}"
     def storage_dir(_state, _version),
       do: ""
-
-    def validate(state, version)
   end
 
   setup do

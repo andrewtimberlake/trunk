@@ -1,16 +1,11 @@
 defmodule Trunk.Storage.FilesystemTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Trunk.Storage.Filesystem
 
   describe "save/4" do
     setup do
-      # Delete and recreate on setup rather than create on setup and create on exit
-      #   because then the files can be visually inspected after a test
-      output_path = Path.join(__DIR__, "../output")
-      File.rm_rf!(output_path)
-      File.mkdir!(output_path)
-
+      {:ok, output_path} = Briefly.create(directory: true)
       fixtures_path = Path.join(__DIR__, "../fixtures")
 
       {:ok, output_path: output_path, fixtures_path: fixtures_path}
