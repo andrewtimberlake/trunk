@@ -46,6 +46,10 @@ defmodule Trunk.Mixfile do
       {:briefly, "~> 0.3.0"},
 
       {:ex_doc, ">= 0.0.0", only: :dev},
+      {:ex_aws, "~> 1.1", only: [:dev, :test]},
+      {:hackney, "~> 1.7", only: [:dev, :test]},
+      {:poison, "~> 3.1", only: [:dev, :test]},
+      {:sweet_xml, "~> 0.6", only: [:dev, :test]},
     ]
   end
 end
