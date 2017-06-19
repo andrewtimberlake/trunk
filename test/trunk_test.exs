@@ -62,11 +62,12 @@ defmodule TrunkTest do
   describe "store/2" do
     Enum.map([true, false], fn(async) ->
       test "store with options async:#{async}", %{output_path: output_path} do
-        {:ok, %Trunk.State{}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"),
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{}} = TestTrunk.store(original_file,
           async: unquote(async), versions: [:original, :thumb])
 
-        assert File.exists?(Path.join(output_path, "coffee.jpg"))
-        assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
+        assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
+        assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
         refute File.exists?(Path.join(output_path, "coffee_thumb.png"))
       end
     end)
@@ -75,12 +76,13 @@ defmodule TrunkTest do
   describe "store/3" do
     Enum.map([false, true], fn(async) ->
       test "store with scope and options async:#{async}", %{output_path: output_path} do
-        {:ok, %Trunk.State{}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"),
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{}} = TestTrunk.store(original_file,
           %{id: 42},
           async: unquote(async), versions: [:original, :thumb])
 
-        assert File.exists?(Path.join(output_path, "42/coffee.jpg"))
-        assert File.exists?(Path.join(output_path, "42/coffee_thumb.jpg"))
+        assert geometry(original_file) == geometry(Path.join(output_path, "42/coffee.jpg"))
+        assert "78x100" == geometry(Path.join(output_path, "42/coffee_thumb.jpg"))
       end
     end)
   end
@@ -88,7 +90,8 @@ defmodule TrunkTest do
   describe "store error handling" do
     Enum.map([true, false], fn(async) ->
       test "error with transform async:#{async}" do
-        assert {:error, %Trunk.State{errors: errors}} = TestTrunk.store(Path.join(__DIR__, "fixtures/coffee.jpg"),
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        assert {:error, %Trunk.State{errors: errors}} = TestTrunk.store(original_file,
           %{id: 42},
           async: unquote(async), versions: [:transform_error])
         %{transform_error: {:transform, error_msg}} = errors

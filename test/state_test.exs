@@ -5,6 +5,6 @@ defmodule Trunk.StateTest do
 
   test "put_error/4" do
     state = State.put_error(%State{}, :thumb, :transform, "Invalid option")
-    assert %{errors: %{thumb: {:transform, "Invalid option"}}}
+    assert %{errors: %{thumb: {:transform, "Invalid option"}}} = state
   end
 end
