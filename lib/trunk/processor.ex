@@ -5,10 +5,10 @@ defmodule Trunk.Processor do
     versions
     |> Enum.map(fn({version, map}) ->
       task = Task.async(fn ->
-       with {:ok, map} <- get_version_transform(map, version, state),
-            {:ok, map} <- transform_version(map, version, state),
-            {:ok, map} <- get_version_filename(map, version, state),
-            {:ok, map} <- get_version_storage_dir(map, version, state) do
+      with {:ok, map} <- get_version_transform(map, version, state),
+           {:ok, map} <- transform_version(map, version, state),
+           {:ok, map} <- get_version_filename(map, version, state),
+           {:ok, map} <- get_version_storage_dir(map, version, state) do
          save_version(map, version, state)
        end
       end)
@@ -81,11 +81,11 @@ defmodule Trunk.Processor do
   defp create_temp_file(%{extname: extname}, _),
     do: Briefly.create(extname: extname)
 
-  defp perform_transform(transform, %{file: file}) when is_function(transform),
-    do: transform.(file)
-  defp perform_transform(transform, %{file: file} = state) do
+  defp perform_transform(transform, %{path: path}) when is_function(transform),
+    do: transform.(path)
+  defp perform_transform(transform, %{path: path} = state) do
     {:ok, temp_file} = create_temp_file(state, transform)
-    perform_transform(transform, file, temp_file)
+    perform_transform(transform, path, temp_file)
   end
   defp perform_transform({command, arguments, _ext}, source, destination),
     do: perform_transform(command, arguments, source, destination)
@@ -106,8 +106,8 @@ defmodule Trunk.Processor do
   defp get_version_filename(version_state, version, %{module: module} = state),
     do: {:ok, Map.put(version_state, :filename, module.filename(state, version))}
 
-  defp save_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{file: file, storage: storage, storage_opts: storage_opts}) do
-    :ok = storage.save(storage_dir, filename, version_state[:temp_file] || file, storage_opts)
+  defp save_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
+    :ok = storage.save(storage_dir, filename, version_state[:temp_file] || path, storage_opts)
 
     {:ok, version_state}
   end

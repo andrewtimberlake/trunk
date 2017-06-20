@@ -55,9 +55,33 @@ defmodule TrunkTest do
   end
 
   describe "store/1" do
-    test "store", %{output_path: output_path} do
+    test "store with a simple file path", %{output_path: output_path} do
       original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
       {:ok, %Trunk.State{}} = TestTrunk.store(original_file)
+      # |> IO.inspect
+
+      assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.png"))
+      assert File.exists?(Path.join(output_path, "coffee.pdf"))
+    end
+
+    test "store with a %Plug.Upload{} struct", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      upload = %{filename: "coffee.jpg", path: original_file}
+      {:ok, %Trunk.State{}} = TestTrunk.store(upload)
+      # |> IO.inspect
+
+      assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.png"))
+      assert File.exists?(Path.join(output_path, "coffee.pdf"))
+    end
+
+    test "store with a %{filename: filename, binary: binary} map", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      upload = %{filename: "coffee.jpg", binary: File.read!(original_file)}
+      {:ok, %Trunk.State{}} = TestTrunk.store(upload)
       # |> IO.inspect
 
       assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))

@@ -13,12 +13,16 @@ defmodule Trunk do
       def store(file, scope \\ nil, opts \\ [])
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)
-      def store(file, scope, opts) do
+      def store(file, scope, opts) when is_binary(file),
+        do: store(%{filename: Path.basename(file), path: file}, scope, opts)
+      def store(%{filename: filename, binary: binary}, scope, opts) do
+        {:ok, path} = Briefly.create(extname: Path.extname(filename))
+        File.write(path, binary, [:write, :binary])
+        store(%{filename: filename, path: path}, scope, opts)
+      end
+      def store(%{filename: filename, path: path}, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        filename = Path.basename(file)
-        state = State.init(%{file: file, filename: filename, module: __MODULE__}, scope, opts)
 
-        Trunk.Processor.store(state)
         with state <- State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts),
              {:ok, state} <- __MODULE__.preprocess(state) do
           Trunk.Processor.store(state)
