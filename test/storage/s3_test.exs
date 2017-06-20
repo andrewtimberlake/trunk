@@ -13,11 +13,6 @@ defmodule Trunk.Storage.S3Test do
         secret_access_key: System.get_env("TRUNK_TEST_S3_SECRET_ACCESS_KEY"),
         region: "eu-west-1",
         # debug_requests: true,
-        s3: [
-          scheme: "https://",
-          host: "s3-eu-west-1.amazonaws.com",
-          region: "eu-west-1",
-        ]
       ]
     ]
 
