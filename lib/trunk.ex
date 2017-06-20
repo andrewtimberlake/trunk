@@ -19,6 +19,10 @@ defmodule Trunk do
         state = State.init(%{file: file, filename: filename, module: __MODULE__}, scope, opts)
 
         Trunk.Processor.store(state)
+        with state <- State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts),
+             {:ok, state} <- __MODULE__.preprocess(state) do
+          Trunk.Processor.store(state)
+        end
       end
 
       # def url(info, scope \\ nil, version \\ :original, opts \\ [])
@@ -47,6 +51,7 @@ defmodule Trunk do
       end
 
       # Default implementations of callback functions
+      def preprocess(state), do: {:ok, state}
 
       def filename(%{filename: filename}, :original), do: filename
       def filename(%{rootname: rootname, extname: extname}, version),
@@ -56,7 +61,7 @@ defmodule Trunk do
 
       def transform(state, version), do: nil
 
-      defoverridable transform: 2, filename: 2, storage_dir: 2
+      defoverridable preprocess: 1, transform: 2, filename: 2, storage_dir: 2
     end
   end
 
@@ -64,6 +69,25 @@ defmodule Trunk do
   @type opts :: Keyword.t
   @type version :: atom
   @type file :: String.t | Plug.Upload.t | %{filename: String.t, path: Path.t} | %{filename: String.t, binary: binary}
+
+  @doc ~S"""
+  A callback to do any preprocessing on the state before transformation and storage begins.
+
+  This is a good place to do file validation.
+  ## Example
+  ```
+  def preprocess(%Trunk.State{extname: extname} = state) do
+    if String.downcase(extname) in [".jpg", ".png"] do
+      {:ok, state}
+    else
+      {:error, "Invalid file"}
+    end
+  end
+  ```
+
+  This is also a place to do any processing that might be needed when transforming versions.
+  """
+  @callback preprocess(Trunk.State.t) :: {:ok, Trunk.State.t} | {:error, any}
 
   @doc ~S"""
   Stores the supplied file.

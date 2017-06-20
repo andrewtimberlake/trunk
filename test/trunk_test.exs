@@ -8,6 +8,14 @@ defmodule TrunkTest do
                storage: Trunk.Storage.Filesystem,
                storage_opts: [path: unquote(output_path)]
 
+    def preprocess(%Trunk.State{extname: extname} = state) do
+      if String.downcase(extname) in [".png", ".jpg", ".jpeg"] do
+        {:ok, state}
+      else
+        {:error, "Invalid file"}
+      end
+    end
+
     def storage_dir(%Trunk.State{scope: %{id: id}}, _version),
       do: "#{id}"
     def storage_dir(_state, _version),
@@ -96,6 +104,12 @@ defmodule TrunkTest do
           async: unquote(async), versions: [:transform_error])
         %{transform_error: {:transform, error_msg}} = errors
         assert error_msg =~ ~r/unrecognized option/
+      end
+
+      test "preprocessing error async:#{async}" do
+        original_file = Path.join(__DIR__, "fixtures/coffee.doc")
+        assert {:error, "Invalid file"} = TestTrunk.store(original_file,
+          %{id: 42}, async: unquote(async))
       end
     end)
   end
