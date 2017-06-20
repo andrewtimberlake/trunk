@@ -60,6 +60,8 @@ defmodule Trunk do
       # Default implementations of callback functions
       def preprocess(state), do: {:ok, state}
 
+      def postprocess(version_state, version, state), do: {:ok, version_state}
+
       def filename(%{filename: filename}, :original), do: filename
       def filename(%{rootname: rootname, extname: extname}, version),
         do: "#{rootname}_#{version}#{extname}"
@@ -68,7 +70,7 @@ defmodule Trunk do
 
       def transform(state, version), do: nil
 
-      defoverridable preprocess: 1, transform: 2, filename: 2, storage_dir: 2
+      defoverridable preprocess: 1, postprocess: 3, transform: 2, filename: 2, storage_dir: 2
     end
   end
 

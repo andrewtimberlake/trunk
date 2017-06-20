@@ -44,6 +44,37 @@ defmodule TrunkTest do
     def transform(junk, version), do: super(junk, version)
   end
 
+  defmodule Md5Trunk do
+    output_path = Path.join(__DIR__, "output")
+    use Trunk, versions: [:original, :thumb],
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: unquote(output_path)]
+
+    def preprocess(%Trunk.State{path: path} = state) do
+      hash = :crypto.hash(:md5, File.read!(path)) |> Base.encode16(case: :lower)
+      {:ok, %{state | assigns: Map.put(state.assigns, :hash, hash)}}
+    end
+
+    def postprocess(%Trunk.VersionState{} = version_state, :original, _state),
+      do: {:ok, version_state}
+    def postprocess(%Trunk.VersionState{temp_path: temp_path, assigns: assigns} = version_state, _version, _state) do
+      hash = :crypto.hash(:md5, File.read!(temp_path)) |> Base.encode16(case: :lower)
+      version_state = %{version_state | assigns: Map.put(assigns, :hash, hash)}
+      {:ok, version_state}
+    end
+
+    def storage_dir(%Trunk.State{assigns: %{hash: hash}}, :original),
+      do: "#{hash}"
+    def storage_dir(%Trunk.State{assigns: %{hash: hash}, versions: versions}, version) do
+      %{assigns: %{hash: version_hash}} = versions[version]
+      "#{hash}/#{version_hash}"
+    end
+
+    def transform(_, :thumb),
+      do: {:convert, "-strip -thumbnail 100x100>"}
+    def transform(junk, version), do: super(junk, version)
+  end
+
   setup do
     # Delete and recreate on setup rather than create on setup and create on exit
     #   because then the files can be visually inspected after a test
@@ -119,6 +150,15 @@ defmodule TrunkTest do
         assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
         assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
         refute File.exists?(Path.join(output_path, "coffee_thumb.png"))
+      end
+
+      test "post processing async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{assigns: %{hash: hash}, versions: versions}} = Md5Trunk.store(original_file, async: unquote(async))
+        %{assigns: %{hash: version_hash}} = versions[:thumb]
+
+        assert geometry(original_file) == geometry(Path.join(output_path, "/#{hash}/coffee.jpg"))
+        assert "78x100" == geometry(Path.join(output_path, "/#{hash}/#{version_hash}/coffee_thumb.jpg"))
       end
     end)
   end

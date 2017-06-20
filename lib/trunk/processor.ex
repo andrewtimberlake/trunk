@@ -5,11 +5,12 @@ defmodule Trunk.Processor do
     versions
     |> Enum.map(fn({version, map}) ->
       task = Task.async(fn ->
-      with {:ok, map} <- get_version_transform(map, version, state),
-           {:ok, map} <- transform_version(map, version, state),
-           {:ok, map} <- get_version_filename(map, version, state),
-           {:ok, map} <- get_version_storage_dir(map, version, state) do
-         save_version(map, version, state)
+        with {:ok, map} <- get_version_transform(map, version, state),
+             {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
+             {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
+             {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
+             {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
+         save_version(map, version, update_state(state, version, map))
        end
       end)
       {version, task}
@@ -29,11 +30,15 @@ defmodule Trunk.Processor do
   def store(%{async: false} = state) do
     with {:ok, state} <- map_versions(state, &get_version_transform/3),
          {:ok, state} <- map_versions(state, &transform_version/3),
+         {:ok, state} <- map_versions(state, &postprocess_version/3),
          {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
          {:ok, state} <- map_versions(state, &get_version_filename/3) do
        map_versions(state, &save_version/3)
     end
   end
+
+  defp update_state(%{versions: versions} = state, version, version_map),
+    do: %{state | versions: Map.put(versions, version, version_map)}
 
   defp map_versions(%{versions: versions} = state, func) do
     {versions, state} =
@@ -66,26 +71,29 @@ defmodule Trunk.Processor do
   defp transform_version(%{transform: nil} = version_state, _version, _state), do: ok(version_state)
   defp transform_version(%{transform: transform} = version_state, _version, state) do
     case perform_transform(transform, state) do
-      {:ok, temp_file} ->
+      {:ok, temp_path} ->
         version_state
         |> Map.put(:transform_result, :ok)
-        |> Map.put(:temp_file, temp_file)
+        |> Map.put(:temp_path, temp_path)
         |> ok
       {:error, error} ->
         {:error, :transform, error}
     end
   end
 
-  defp create_temp_file(%{}, {_, _, extname}),
+  defp postprocess_version(version_state, version, %{module: module} = state),
+    do: module.postprocess(version_state, version, state)
+
+  defp create_temp_path(%{}, {_, _, extname}),
     do: Briefly.create(extname: ".#{extname}")
-  defp create_temp_file(%{extname: extname}, _),
+  defp create_temp_path(%{extname: extname}, _),
     do: Briefly.create(extname: extname)
 
   defp perform_transform(transform, %{path: path}) when is_function(transform),
     do: transform.(path)
   defp perform_transform(transform, %{path: path} = state) do
-    {:ok, temp_file} = create_temp_file(state, transform)
-    perform_transform(transform, path, temp_file)
+    {:ok, temp_path} = create_temp_path(state, transform)
+    perform_transform(transform, path, temp_path)
   end
   defp perform_transform({command, arguments, _ext}, source, destination),
     do: perform_transform(command, arguments, source, destination)
@@ -107,7 +115,7 @@ defmodule Trunk.Processor do
     do: {:ok, Map.put(version_state, :filename, module.filename(state, version))}
 
   defp save_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
-    :ok = storage.save(storage_dir, filename, version_state[:temp_file] || path, storage_opts)
+    :ok = storage.save(storage_dir, filename, version_state.temp_path || path, storage_opts)
 
     {:ok, version_state}
   end

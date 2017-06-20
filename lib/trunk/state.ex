@@ -1,4 +1,6 @@
 defmodule Trunk.State do
+  alias Trunk.VersionState
+
   defstruct ~w(module opts filename rootname extname path versions async version_timeout scope storage storage_opts errors assigns)a
   @type t :: %__MODULE__{module: atom, opts: Keyword.t, filename: String.t, rootname: String.t, extname: String.t, path: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
@@ -14,13 +16,14 @@ defmodule Trunk.State do
       filename: filename,
       extname: Path.extname(filename),
       rootname: Path.rootname(filename),
-      versions: opts |> Keyword.fetch!(:versions) |> Enum.map(&({&1, %{}})) |> Map.new,
+      versions: opts |> Keyword.fetch!(:versions) |> Enum.map(&({&1, %VersionState{}})) |> Map.new,
       version_timeout: Keyword.fetch!(opts, :version_timeout),
       async: Keyword.fetch!(opts, :async),
       storage: Keyword.fetch!(opts, :storage),
       storage_opts: Keyword.fetch!(opts, :storage_opts),
       scope: scope,
       errors: nil,
+      assigns: %{},
     }
   end
 
