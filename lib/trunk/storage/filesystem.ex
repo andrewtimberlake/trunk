@@ -44,6 +44,6 @@ defmodule Trunk.Storage.Filesystem do
   """
   def build_uri(directory, filename, opts \\ []) do
     base_uri = Keyword.get(opts, :base_uri) || ""
-    full_path = base_uri |> Path.join(directory) |> Path.join(filename)
+    base_uri |> Path.join(directory) |> Path.join(filename)
   end
 end

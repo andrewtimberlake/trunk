@@ -7,9 +7,6 @@ defmodule Trunk do
     quote location: :keep do
       @behaviour Trunk
 
-      @doc ~S"""
-      This is the doc for store
-      """
       def store(file, scope \\ nil, opts \\ [])
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)

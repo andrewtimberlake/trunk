@@ -26,7 +26,7 @@ defmodule Trunk.Storage.S3 do
     #   |> ExAws.request(Keyword.get(opts, :ex_aws))
 
     with {:ok, source_data} <- File.read(source_path),
-         {:ok, result} <- put_object(bucket, key, source_data, ex_aws_opts) do
+         {:ok, _result} <- put_object(bucket, key, source_data, ex_aws_opts) do
       :ok
     else
       error -> error
