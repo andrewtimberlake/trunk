@@ -68,7 +68,7 @@ defmodule TrunkTest do
 
     test "store with a %Plug.Upload{} struct", %{output_path: output_path} do
       original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
-      upload = %{filename: "coffee.jpg", path: original_file}
+      upload = %Plug.Upload{filename: "coffee.jpg", path: original_file}
       {:ok, %Trunk.State{}} = TestTrunk.store(upload)
       # |> IO.inspect
 
@@ -83,6 +83,24 @@ defmodule TrunkTest do
       upload = %{filename: "coffee.jpg", binary: File.read!(original_file)}
       {:ok, %Trunk.State{}} = TestTrunk.store(upload)
       # |> IO.inspect
+
+      assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.png"))
+      assert File.exists?(Path.join(output_path, "coffee.pdf"))
+    end
+
+    test "store with a URL", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+
+      bypass = Bypass.open
+      Bypass.expect bypass, fn conn ->
+        assert "/path/to/coffee.jpg" == conn.request_path
+        assert "GET" == conn.method
+        Plug.Conn.send_file(conn, 200, original_file)
+      end
+
+      {:ok, %Trunk.State{}} = TestTrunk.store("http://localhost:#{bypass.port}/path/to/coffee.jpg")
 
       assert geometry(original_file) == geometry(Path.join(output_path, "coffee.jpg"))
       assert "78x100" == geometry(Path.join(output_path, "coffee_thumb.jpg"))

@@ -13,6 +13,12 @@ defmodule Trunk do
       def store(file, scope \\ nil, opts \\ [])
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)
+      def store(<<"http", _rest::binary>> = url, scope, opts) do
+        filename = Path.basename(url)
+        {:ok, 200, _headers, ref} = :hackney.get(url, [], [], [])
+        {:ok, body} = :hackney.body(ref)
+        store(%{filename: filename, binary: body}, scope, opts)
+      end
       def store(file, scope, opts) when is_binary(file),
         do: store(%{filename: Path.basename(file), path: file}, scope, opts)
       def store(%{filename: filename, binary: binary}, scope, opts) do
@@ -114,8 +120,9 @@ defmodule Trunk do
 
   - `file` - the file to store.
     - This can be a full path to file, or
-    - A map with `:filename` and `:path` keys (e.g. `%Plug.Upload{}`), or
-    - A map with `:filename` and `:binary` keys (e.g. `%{filename: "myfile.jpg", binary: <<…>>}`)
+    - a url to a file, or
+    - a map with `:filename` and `:path` keys (e.g. `%Plug.Upload{}`), or
+    - a map with `:filename` and `:binary` keys (e.g. `%{filename: "myfile.jpg", binary: <<…>>}`)
   - `scope` - (optional) a map or struct that will help when generating the filename and storage directory for saving the file
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
   """
