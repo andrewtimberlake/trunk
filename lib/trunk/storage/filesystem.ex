@@ -1,4 +1,6 @@
 defmodule Trunk.Storage.Filesystem do
+  @behaviour Trunk.Storage
+
   @doc ~S"""
   Saves the file to the file system.
 

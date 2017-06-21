@@ -1,4 +1,6 @@
 defmodule Trunk.Storage.S3 do
+  @behaviour Trunk.Storage
+
   @doc ~S"""
   Saves the file to Amazon S3.
 
