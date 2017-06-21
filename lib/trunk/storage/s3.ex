@@ -1,4 +1,8 @@
 defmodule Trunk.Storage.S3 do
+  @moduledoc """
+  A `Trunk.Storage` implementation for Amazon’s S3 service.
+  """
+
   @behaviour Trunk.Storage
 
   @doc ~S"""

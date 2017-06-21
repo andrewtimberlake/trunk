@@ -1,4 +1,18 @@
 defmodule Trunk do
+  @moduledoc """
+  A `Trunk` is a module used to handle the transformation and storage of files with multiple versions.
+
+  ## Usage:
+  To generate a `Trunk` call `use Trunk` and supply options to configure the specific behaviour you need.
+  ```
+  defmodule MyTrunk do
+    use Trunk, versions: [:original],
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: "/tmp"]
+  end
+  ```
+  """
+
   alias Trunk.State
 
   defmacro __using__(module_opts \\ []) do

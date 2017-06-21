@@ -1,4 +1,8 @@
 defmodule Trunk.Storage.Filesystem do
+  @moduledoc """
+  A `Trunk.Storage` implementation for the local file system.
+  """
+
   @behaviour Trunk.Storage
 
   @doc ~S"""
