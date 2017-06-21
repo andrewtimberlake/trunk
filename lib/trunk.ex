@@ -182,7 +182,7 @@ defmodule Trunk do
     do: "#{rootname}_#{version}#{extname}"
   ```
   """
-  @callback filename(state :: Trunk.State.t, version :: atom) :: String.t
+  @callback filename(state :: Trunk.State.t, version) :: String.t
 
   @doc ~S"""
   A callback that should be used to determine the storage directory specific to each version.
@@ -203,7 +203,7 @@ defmodule Trunk do
     do: to_string(model_id)
   ```
   """
-  @callback storage_dir(state :: Trunk.State.t, version :: atom) :: String.t
+  @callback storage_dir(state :: Trunk.State.t, version) :: String.t
 
   @type command :: atom | binary
   @type args :: String.t | [binary]
@@ -237,5 +237,32 @@ defmodule Trunk do
   ## Note:
   Returning an instruction with an extension will change the extension of the temporary file used in the transformation but will not affect the filename during save. That still needs to be done in `c:filename/2`
   """
-  @callback transform(state :: Trunk.State.t, version :: atom) :: nil | {command, args} | {command, args, ext}
+  @callback transform(state :: Trunk.State.t, version) :: nil | {command, args} | {command, args, ext}
+
+  @doc ~S"""
+  A callback that can be used to do additional processing on each version file before it gets saved.
+
+  This callback can update the version state information which can then be used in `storage_dir/2` and `filename/2` as additional information for storage.
+
+  **Note: ** If information is stored in the version state and used for file naming, then that information needs to be stored in order to retrieve that file or generate a URL etc.
+
+  ## Example:
+  To generate and store the md5 hash of each version.
+  ```
+  def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, _state) do
+    hash = :crypto.hash(:md5, File.read!(temp_path)) |> Base.encode16(case: :lower)
+    {:ok, Trunk.VersionState.assign(version_state, :hash, hash)}
+  end
+  ```
+
+  ## Example:
+  To calculate and store the file size of each version.
+  ```
+  def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, _state) do
+    {:ok, %File.Stat{size: file_size}} = File.stat(temp_path)
+    {:ok, Trunk.VersionState.assign(version_state, :file_size, file_size)}
+  end
+  ```
+  """
+  @callback postprocess(version_state :: Trunk.VersionState.t, version, state :: Trunk.State.t) :: {:ok, Trunk.VersionState.t} | {:error, any}
 end

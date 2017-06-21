@@ -57,10 +57,9 @@ defmodule TrunkTest do
 
     def postprocess(%Trunk.VersionState{} = version_state, :original, _state),
       do: {:ok, version_state}
-    def postprocess(%Trunk.VersionState{temp_path: temp_path, assigns: assigns} = version_state, _version, _state) do
+    def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, _state) do
       hash = :crypto.hash(:md5, File.read!(temp_path)) |> Base.encode16(case: :lower)
-      version_state = %{version_state | assigns: Map.put(assigns, :hash, hash)}
-      {:ok, version_state}
+      {:ok, Trunk.VersionState.assign(version_state, :hash, hash)}
     end
 
     def storage_dir(%Trunk.State{assigns: %{hash: hash}}, :original),
@@ -184,7 +183,7 @@ defmodule TrunkTest do
         assert {:error, %Trunk.State{errors: errors}} = TestTrunk.store(original_file,
           %{id: 42},
           async: unquote(async), versions: [:transform_error])
-        %{transform_error: {:transform, error_msg}} = errors
+        %{transform_error: [transform: error_msg]} = errors
         assert error_msg =~ ~r/unrecognized option/
       end
 
