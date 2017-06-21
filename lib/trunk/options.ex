@@ -1,4 +1,6 @@
 defmodule Trunk.Options do
+  @moduledoc false
+
   def parse(module_opts, method_opts) do
     defaults = [
       versions: [:original],

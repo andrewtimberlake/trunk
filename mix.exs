@@ -51,6 +51,7 @@ defmodule Trunk.Mixfile do
       {:poison, "~> 3.1", only: [:dev, :test]},
       {:sweet_xml, "~> 0.6", only: [:dev, :test]},
       {:bypass, "~> 0.6", only: :test},
+      {:credo, "~> 0.8", only: [:dev, :test]},
     ]
   end
 end

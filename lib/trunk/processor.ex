@@ -1,4 +1,6 @@
 defmodule Trunk.Processor do
+  @moduledoc false
+
   alias Trunk.State
 
   def store(%{versions: versions, version_timeout: version_timeout, async: true} = state) do
