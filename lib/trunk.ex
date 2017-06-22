@@ -22,7 +22,7 @@ defmodule Trunk do
   ### Available options
   - `:versions` a list of versions as atoms, `[:original, :thumb]`
   - `:async` (boolean) default `true`, whether to process each version in parallel or in sequence.
-  - `:version_timeout` default `5_000`, how long to wait for each versions transformation to complete when processing in parallel.
+  - `:version_timeout` default `5_000`, how long to wait for each versions transformation and storage to complete when processing in parallel. **Note: ** if storing files non-locally (i.e. Amazon S3), then include both expected time for transformation and expected time for storage in this timeout.
   - `:storage` default `Trunk.Storage.Filesystem`, the storage module to use when storing files and versions
   - `:storage_opts` default: `[path: ""]`, the options for the storage module. See each storage module's documentation for available options.
   - `:otp_app`, only used at module level to read options specific to the otp app.
@@ -298,10 +298,12 @@ defmodule Trunk do
   @type command :: atom | binary
   @type args :: String.t | [binary]
   @type ext :: atom
+  @type reason :: any
+  @type transform_func :: ((source_path :: String.t) -> {:ok, String.t} | {:error, reason})
   @doc ~S"""
   A callback that can be used to generate a transform specific to each version
 
-  The transformation instruction is a command, arguments and an optional extension if the transformation will result in a file of a different extension from the supplied file (or to force a specific extension)
+  The transformation instruction is a two element tuple `{command, arguments}`, a three element tuple `{command, arguments, extension}`, or a function that accepts a single argument (the source file path) and returns either `{:ok, "/path/to/transformed/file"}` or `{:error, "Reason"}`
 
   ## Example:
   To generate a thumnail, you might have a version named `:thumb`.
@@ -324,10 +326,21 @@ defmodule Trunk do
   ```
   In this case the temporary file generated for the transformation would have a .jpg extension.
 
-  ## Note:
-  Returning an instruction with an extension will change the extension of the temporary file used in the transformation but will not affect the filename during save. That still needs to be done in `c:filename/2`
+  **Note:**  Returning an instruction with an extension will change the extension of the temporary file used in the transformation but will not affect the filename during save. That still needs to be done in `c:filename/2`
+
+  Finally a function can be returned which will be wholly responsible for doing the transformation and returning the location of the transformed file.
+  The function should return `{:ok, temp_path}` if successful, or `{:error, reason}` if not.
+  ```
+  def transform(%Trunk.State{}, :thumb),
+    do: fn(source_path) ->
+          # Create a temporary file, or do a transformation that results in a new file
+          {:ok, temp_path} = Briefly.create()
+          :ok = File.cp(source_path, temp_path)
+          {:ok, temp_path}
+        end
+  ```
   """
-  @callback transform(state :: Trunk.State.t, version) :: nil | {command, args} | {command, args, ext}
+  @callback transform(state :: Trunk.State.t, version) :: nil | {command, args} | {command, args, ext} | transform_func
 
   @doc ~S"""
   A callback that can be used to do additional processing on each version file before it gets saved.

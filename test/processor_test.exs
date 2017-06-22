@@ -15,5 +15,21 @@ defmodule Trunk.ProcessorTest do
       assert {:error, %{errors: errors}} = Processor.store(%State{module: TestTrunk, versions: %{timeout_version: %VersionState{}}, version_timeout: 500})
       assert %{timeout_version: [processing: :timeout]} = errors
     end
+
+    test "spaces in file names" do
+      original_file = Path.join(__DIR__, "fixtures/coffee beans.jpg")
+      assert {:ok, _version_state} = Processor.transform_version(%{transform: {:convert, "-thumbnail 100x100>"}}, :version, %State{path: original_file, extname: ".jpg", versions: %{version: %VersionState{}}})
+    end
+
+    test "list of arguments" do
+      original_file = Path.join(__DIR__, "fixtures/coffee beans.jpg")
+      assert {:ok, _version_state} = Processor.transform_version(%{transform: {:convert, ["-thumbnail", "100x100>"]}}, :version, %State{path: original_file, extname: ".jpg", versions: %{version: %VersionState{}}})
+    end
+
+    test "transformation function" do
+      assert {:ok, %{transform_result: :ok, temp_path: "temp_file"}} = Processor.transform_version(%{transform: fn(_) -> {:ok, "temp_file"} end}, :version, %State{versions: %{version: %VersionState{}}})
+
+      assert {:error, :transform, "WAT!"} = Processor.transform_version(%{transform: fn(_) -> {:error, "WAT!"} end}, :version, %State{versions: %{version: %VersionState{}}})
+    end
   end
 end

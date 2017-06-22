@@ -91,8 +91,9 @@ defmodule Trunk.Processor do
   defp get_version_transform(version_state, version, %{module: module} = state),
     do: {:ok, Map.put(version_state, :transform, module.transform(state, version))}
 
-  defp transform_version(%{transform: nil} = version_state, _version, _state), do: ok(version_state)
-  defp transform_version(%{transform: transform} = version_state, _version, state) do
+  @doc false
+  def transform_version(%{transform: nil} = version_state, _version, _state), do: ok(version_state)
+  def transform_version(%{transform: transform} = version_state, _version, state) do
     case perform_transform(transform, state) do
       {:ok, temp_path} ->
         version_state
@@ -123,13 +124,17 @@ defmodule Trunk.Processor do
   defp perform_transform({command, arguments}, source, destination),
     do: perform_transform(command, arguments, source, destination)
   defp perform_transform(command, arguments, source, destination) do
-    args = "#{source} #{arguments} #{destination}" |> String.split(" ")
-
+    args = prepare_transform_arguments(source, destination, arguments)
     case System.cmd(to_string(command), args, stderr_to_stdout: true) do
       {_result, 0} -> {:ok, destination}
       {result, _} -> {:error, result}
     end
   end
+
+  defp prepare_transform_arguments(source, destination, [_ | _] = arguments),
+    do: [source | arguments] ++ [destination]
+  defp prepare_transform_arguments(source, destination, arguments),
+    do: prepare_transform_arguments(source, destination, String.split(arguments, " "))
 
   defp get_version_storage_dir(version_state, version, %{module: module} = state),
     do: {:ok, Map.put(version_state, :storage_dir, module.storage_dir(state, version))}

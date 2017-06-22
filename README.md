@@ -16,3 +16,9 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/trunk](https://hexdocs.pm/trunk).
+
+## Credits
+
+### Photos
+[coffee.jpg](https://unsplash.com/photos/Cdz_lvnl37k) by [Ronaldo Arthur Vidal](https://unsplash.com/@ronaldoav)
+[coffee beans.jpg](http://unsplash.com/photos/JS-QXqSGVE8) by [Alex Jones](https://unsplash.com/@alexjones)
