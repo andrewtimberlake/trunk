@@ -27,7 +27,7 @@ defmodule Trunk.ProcessorTest do
     end
 
     test "transformation function" do
-      assert {:ok, %{transform_result: :ok, temp_path: "temp_file"}} = Processor.transform_version(%{transform: fn(_) -> {:ok, "temp_file"} end}, :version, %State{versions: %{version: %VersionState{}}})
+      assert {:ok, %{temp_path: "temp_file"}} = Processor.transform_version(%{transform: fn(_) -> {:ok, "temp_file"} end}, :version, %State{versions: %{version: %VersionState{}}})
 
       assert {:error, :transform, "WAT!"} = Processor.transform_version(%{transform: fn(_) -> {:error, "WAT!"} end}, :version, %State{versions: %{version: %VersionState{}}})
     end

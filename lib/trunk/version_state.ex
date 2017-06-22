@@ -3,8 +3,8 @@ defmodule Trunk.VersionState do
   This module defines a `Trunk.VersionState` struct and provides some helper functions for working with that state.
   """
 
-  defstruct temp_path: nil, opts: [], transform: nil, transform_result: nil, assigns: %{}
-  @type t :: %__MODULE__{temp_path: String.t, opts: Keyword.t, transform: any, transform_result: any, assigns: map}
+  defstruct temp_path: nil, opts: [], transform: nil, assigns: %{}
+  @type t :: %__MODULE__{temp_path: String.t, opts: Keyword.t, transform: any, assigns: map}
 
   @doc ~S"""
   Assigns a value to a key on the state.

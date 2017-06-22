@@ -97,7 +97,6 @@ defmodule Trunk.Processor do
     case perform_transform(transform, state) do
       {:ok, temp_path} ->
         version_state
-        |> Map.put(:transform_result, :ok)
         |> Map.put(:temp_path, temp_path)
         |> ok
       {:error, error} ->
