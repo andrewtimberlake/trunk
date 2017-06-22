@@ -4,26 +4,42 @@ defmodule Trunk.Processor do
   alias Trunk.State
 
   def store(%{versions: versions, version_timeout: version_timeout, async: true} = state) do
-    versions
-    |> Enum.map(fn({version, map}) ->
-      task = Task.async(fn ->
-        with {:ok, map} <- get_version_transform(map, version, state),
-             {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
-             {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
-             {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
-             {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
-         save_version(map, version, update_state(state, version, map))
-       end
+    tasks =
+      versions
+      |> Enum.map(fn({version, map}) ->
+        task = Task.async(fn ->
+          with {:ok, map} <- get_version_transform(map, version, state),
+               {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
+               {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
+               {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
+               {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
+           save_version(map, version, update_state(state, version, map))
+         end
+        end)
+        {version, task}
       end)
-      {version, task}
+
+    task_list = Enum.map(tasks, fn({_version, task}) -> task end)
+
+    task_list
+    |> Task.yield_many(version_timeout)
+    |> Enum.map(fn({task, result}) ->
+      {task, result || Task.shutdown(task, :brutal_kill)}
     end)
-    |> Enum.map(fn({version, task}) ->
-      {version, Task.await(task, version_timeout)}
+    |> Enum.map(fn
+      {task, nil} ->
+        {find_task_version(tasks, task), {:error, :timeout}}
+      {task, {:ok, response}} ->
+        {find_task_version(tasks, task), response}
+      {task, other} ->
+        {find_task_version(tasks, task), other}
     end)
     |> Enum.reduce(state, fn
       {version, {:ok, map}}, %{versions: versions} = state ->
         versions = Map.put(versions, version, map)
         %{state | versions: versions}
+      {version, {:error, error}}, state ->
+        State.put_error(state, version, :processing, error)
       {version, {:error, stage, error}}, state ->
         State.put_error(state, version, stage, error)
     end)
@@ -38,6 +54,11 @@ defmodule Trunk.Processor do
        map_versions(state, &save_version/3)
     end
   end
+
+  defp find_task_version([], _task), do: nil
+  defp find_task_version([{version, task} | _tail], task), do: version
+  defp find_task_version([_head | tail], task),
+    do: find_task_version(tail, task)
 
   defp update_state(%{versions: versions} = state, version, version_map),
     do: %{state | versions: Map.put(versions, version, version_map)}

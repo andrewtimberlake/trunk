@@ -81,10 +81,10 @@ defmodule Trunk do
       do: "\#{rootname}_\#{version}\#{extname}"
   end
 
-  iex> {:ok, %Trunk.State{filename: filename, versions: versions}} = MyTrunk.store("/path/to/photo.jpg")
-  iex> filename
+  > {:ok, %Trunk.State{filename: filename, versions: versions}} = MyTrunk.store("/path/to/photo.jpg")
+  > filename
   "photo.jpg"
-  iex> versions |> Enum.map(fn({version, %Trunk.VersionState{assigns: %{file_size: file_size}}}) -> {version, file_size} end)
+  > versions |> Enum.map(fn({version, %Trunk.VersionState{assigns: %{file_size: file_size}}}) -> {version, file_size} end)
   [original: 34567, thumb: 456]
   ```
   """
