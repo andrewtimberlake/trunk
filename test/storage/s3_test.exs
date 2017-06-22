@@ -3,11 +3,13 @@ defmodule Trunk.Storage.S3Test do
 
   alias Trunk.Storage.S3
 
+  @bucket System.get_env("TRUNK_TEST_S3_BUCKET") || "trunk-test"
+
   setup do
     fixtures_path = Path.join(__DIR__, "../fixtures")
 
     s3_opts = [
-      bucket: System.get_env("TRUNK_TEST_S3_BUCKET"),
+      bucket: @bucket,
       ex_aws: [
         access_key_id: System.get_env("TRUNK_TEST_S3_ACCESS_KEY"),
         secret_access_key: System.get_env("TRUNK_TEST_S3_SECRET_ACCESS_KEY"),
@@ -41,24 +43,43 @@ defmodule Trunk.Storage.S3Test do
     end
   end
 
+  describe "delete/3" do
+    @tag :s3
+    test "successfully remove a file", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+      source_path = Path.join(fixtures_path, "coffee.jpg")
+      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, s3_opts)
+      assert file_saved?("trunk/new/dir/new-coffee.jpg", s3_opts)
+      assert :ok = S3.delete("trunk/new/dir", "new-coffee.jpg", s3_opts)
+      refute file_saved?("trunk/new/dir/new-coffee.jpg", s3_opts)
+      assert :ok = S3.delete("trunk/new/dir", "new-coffee.jpg", s3_opts) # Can remove the file again without error
+    end
+
+    @tag :s3
+    test "error with S3 bucket", %{s3_opts: s3_opts} do
+      s3_opts = Keyword.put(s3_opts, :bucket, "wrong-bucket-#{System.unique_integer([:positive, :monotonic])}")
+
+      assert {:error, {:http_error, 404, _}} = S3.delete("new/dir", "new-coffee.jpg", s3_opts)
+    end
+  end
+
   describe "build_url/3" do
     @tag :s3
     test "it returns a url", %{s3_opts: s3_opts} do
-      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://s3-eu-west-1.amazonaws.com/yourdigital-test/trunk/new/dir/new-coffee.jpg"
+      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://s3-eu-west-1.amazonaws.com/#{@bucket}/trunk/new/dir/new-coffee.jpg"
     end
 
     @tag :s3
     test "it returns a signed url", %{s3_opts: s3_opts} do
       s3_opts = Keyword.put(s3_opts, :signed, true)
       url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse
-      assert %URI{host: "s3-eu-west-1.amazonaws.com", path: "/yourdigital-test/trunk/new/dir/new-coffee.jpg"} = url
+      assert %URI{host: "s3-eu-west-1.amazonaws.com", path: "/#{@bucket}/trunk/new/dir/new-coffee.jpg"} = url
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
 
     @tag :s3
     test "it returns a url with a virtual host", %{s3_opts: s3_opts} do
       s3_opts = Keyword.put(s3_opts, :virtual_host, true)
-      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://yourdigital-test.s3-eu-west-1.amazonaws.com/trunk/new/dir/new-coffee.jpg"
+      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://#{@bucket}.s3-eu-west-1.amazonaws.com/trunk/new/dir/new-coffee.jpg"
     end
 
     @tag :s3
@@ -66,7 +87,7 @@ defmodule Trunk.Storage.S3Test do
       s3_opts = Keyword.put(s3_opts, :virtual_host, true)
       s3_opts = Keyword.put(s3_opts, :signed, true)
       url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse
-      assert %URI{host: "yourdigital-test.s3-eu-west-1.amazonaws.com", path: "/trunk/new/dir/new-coffee.jpg"} = url
+      assert %URI{host: "#{@bucket}.s3-eu-west-1.amazonaws.com", path: "/trunk/new/dir/new-coffee.jpg"} = url
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
   end

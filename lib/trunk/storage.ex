@@ -21,6 +21,20 @@ defmodule Trunk.Storage do
   @callback save(directory :: String.t, filenae :: String.t, source_path :: String.t, opts) :: :ok | {:error, any}
 
   @doc ~S"""
+  Deletes the version file from the storage system at path `Path.join(directory, filename)`
+
+  - `directory` - The directory
+  - `filename` - The name of the file
+  - `opts` - The options for the storage system, set in Trunk option `:storage_opts`
+
+  ## Example:
+  The file should be removed from <storage system>/my-bucket/path/to/file.ext
+  ```
+  MyStorage.delete("path/to/", "file.ext", some: :opt)
+  """
+  @callback delete(directory :: String.t, filenae :: String.t, opts) :: :ok | {:error, any}
+
+  @doc ~S"""
   Generates a URL to the S3 object
 
   - `directory` - The directory

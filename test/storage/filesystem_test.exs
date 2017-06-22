@@ -3,14 +3,14 @@ defmodule Trunk.Storage.FilesystemTest do
 
   alias Trunk.Storage.Filesystem
 
+  setup do
+    {:ok, output_path} = Briefly.create(directory: true)
+    fixtures_path = Path.join(__DIR__, "../fixtures")
+
+    {:ok, output_path: output_path, fixtures_path: fixtures_path}
+  end
+
   describe "save/4" do
-    setup do
-      {:ok, output_path} = Briefly.create(directory: true)
-      fixtures_path = Path.join(__DIR__, "../fixtures")
-
-      {:ok, output_path: output_path, fixtures_path: fixtures_path}
-    end
-
     test "successfully save a file", %{output_path: output_path, fixtures_path: fixtures_path} do
       assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path)
       assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
@@ -18,6 +18,15 @@ defmodule Trunk.Storage.FilesystemTest do
 
     test "error saving file", %{output_path: output_path, fixtures_path: fixtures_path} do
       assert {:error, :enoent} = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "wrong.jpg"), path: output_path)
+    end
+  end
+
+  describe "delete/3" do
+    test "successfully save a file", %{output_path: output_path, fixtures_path: fixtures_path} do
+      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path)
+      assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
+      assert :ok = Filesystem.delete("new/dir", "new-coffee.jpg", path: output_path)
+      refute File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
   end
 

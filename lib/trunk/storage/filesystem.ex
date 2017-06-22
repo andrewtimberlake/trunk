@@ -29,6 +29,30 @@ defmodule Trunk.Storage.Filesystem do
   end
 
   @doc ~S"""
+  Deletes the file from the file system.
+
+  - `directory` - The relative directory within which to store the file
+  - `filename` - The name of the file to be saved
+  - `opts` - The options for the storage system
+    - `path:` (required) The base path within which to save files
+
+  ## Example:
+  The file will be removed from /opts/uploads/path/to/file.ext
+  ```
+  Trunk.Storage.Filesystem.delete("path/to/", "file.ext", path: "/opt/uploads")
+  """
+  @spec delete(String.t, String.t, keyword) :: :ok | {:error, :file.posix}
+  def delete(directory, filename, opts \\ []) do
+    base_directory = Keyword.fetch!(opts, :path)
+    file_path = base_directory |> Path.join(directory)
+    case File.rm(Path.join(file_path, filename)) do
+      :ok -> :ok
+      {:error, :enoent} -> :ok
+      error -> error
+    end
+  end
+
+  @doc ~S"""
   Generates a URL for the storage directory and file
 
   - `directory` - The relative directory where the file is saved

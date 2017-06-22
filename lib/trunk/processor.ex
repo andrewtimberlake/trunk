@@ -3,11 +3,8 @@ defmodule Trunk.Processor do
 
   alias Trunk.State
 
-  def store(%{versions: versions, version_timeout: version_timeout, async: true} = state) do
-    tasks =
-      versions
-      |> Enum.map(fn({version, map}) ->
-        task = Task.async(fn ->
+  def store(%{async: true} = state) do
+    process_async(state, fn(version, map, state) ->
           with {:ok, map} <- get_version_transform(map, version, state),
                {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
                {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
@@ -15,7 +12,38 @@ defmodule Trunk.Processor do
                {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
            save_version(map, version, update_state(state, version, map))
          end
-        end)
+               end)
+  end
+  def store(%{async: false} = state) do
+    with {:ok, state} <- map_versions(state, &get_version_transform/3),
+         {:ok, state} <- map_versions(state, &transform_version/3),
+         {:ok, state} <- map_versions(state, &postprocess_version/3),
+         {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
+         {:ok, state} <- map_versions(state, &get_version_filename/3) do
+       map_versions(state, &save_version/3)
+    end
+  end
+
+  def delete(%{async: true} = state) do
+    process_async(state, fn(version, map, state) ->
+      with {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
+      {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
+        delete_version(map, version, update_state(state, version, map))
+      end
+    end)
+  end
+  def delete(%{async: false} = state) do
+    with {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
+         {:ok, state} <- map_versions(state, &get_version_filename/3) do
+      map_versions(state, &delete_version/3)
+    end
+  end
+
+  def process_async(%{versions: versions, version_timeout: version_timeout} = state, func) do
+    tasks =
+      versions
+      |> Enum.map(fn({version, map}) ->
+        task = Task.async(fn -> func.(version, map, state) end)
         {version, task}
       end)
 
@@ -44,15 +72,6 @@ defmodule Trunk.Processor do
         State.put_error(state, version, stage, error)
     end)
     |> ok
-  end
-  def store(%{async: false} = state) do
-    with {:ok, state} <- map_versions(state, &get_version_transform/3),
-         {:ok, state} <- map_versions(state, &transform_version/3),
-         {:ok, state} <- map_versions(state, &postprocess_version/3),
-         {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
-         {:ok, state} <- map_versions(state, &get_version_filename/3) do
-       map_versions(state, &save_version/3)
-    end
   end
 
   defp find_task_version([], _task), do: nil
@@ -143,6 +162,12 @@ defmodule Trunk.Processor do
 
   defp save_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
     :ok = storage.save(storage_dir, filename, version_state.temp_path || path, storage_opts)
+
+    {:ok, version_state}
+  end
+
+  defp delete_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{storage: storage, storage_opts: storage_opts}) do
+    :ok = storage.delete(storage_dir, filename, storage_opts)
 
     {:ok, version_state}
   end

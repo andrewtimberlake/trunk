@@ -46,6 +46,35 @@ defmodule Trunk.Storage.S3 do
   end
 
   @doc ~S"""
+  Deletes the file from Amazon S3.
+
+  - `directory` - The directory (will be combined with the `filename` to form the S3 key.
+  - `filename` - The name of the file (will be combined with the `directory` to form the S3 key.
+  - `opts` - The options for the storage system
+    - `bucket:` (required) The S3 bucket in which to store the object
+    - `ex_aws:` (optional) override options for `ex_aws`
+
+  ## Example:
+  The file will be removed from s3.amazonaws.com/my-bucket/path/to/file.ext
+  ```
+  Trunk.Storage.S3.delete("path/to/", "file.ext", bucket: "my-bucket")
+  """
+  @spec delete(String.t, String.t, keyword) :: :ok | {:error, :file.posix}
+  def delete(directory, filename, opts \\ []) do
+    key = directory |> Path.join(filename)
+    bucket = Keyword.fetch!(opts, :bucket)
+    ex_aws_opts = Keyword.get(opts, :ex_aws, [])
+
+    bucket
+    |> ExAws.S3.delete_object(key)
+    |> ExAws.request(ex_aws_opts)
+    |> case do
+         {:ok, _} -> :ok
+         error -> error
+       end
+  end
+
+  @doc ~S"""
   Generates a URL to the S3 object
 
   - `directory` - The directory (will be combined with the `filename` to form the S3 key.

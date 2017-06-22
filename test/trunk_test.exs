@@ -160,6 +160,14 @@ defmodule TrunkTest do
         assert "78x100" == geometry(Path.join(output_path, "/#{hash}/#{version_hash}/coffee_thumb.jpg"))
       end
     end)
+
+    test "store with scope", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, %Trunk.State{}} = TestTrunk.store(original_file, %{id: 42})
+
+      assert geometry(original_file) == geometry(Path.join(output_path, "42/coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "42/coffee_thumb.jpg"))
+    end
   end
 
   describe "store/3" do
@@ -191,6 +199,71 @@ defmodule TrunkTest do
         original_file = Path.join(__DIR__, "fixtures/coffee.doc")
         assert {:error, "Invalid file"} = TestTrunk.store(original_file,
           %{id: 42}, async: unquote(async))
+      end
+    end)
+  end
+
+  describe "delete/1" do
+    test "it deletes the files from storage", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, %Trunk.State{}} = TestTrunk.store(original_file)
+
+      stored_files = Path.join(output_path, "*") |> Path.wildcard
+
+      {:ok, _state} = TestTrunk.delete("coffee.jpg")
+
+      assert Enum.all?(stored_files, fn(path) -> !File.exists?(path) end)
+
+      {:ok, _state} = TestTrunk.delete("coffee.jpg") # It can be run again if files are already deleted.
+    end
+  end
+
+  describe "delete/2" do
+    Enum.each([true, false], fn(async) ->
+      test "delete with options async:#{async}", %{output_path: output_path} do
+        opts = [async: unquote(async)]
+
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{}} = TestTrunk.store(original_file, opts)
+
+        stored_files = Path.join(output_path, "*") |> Path.wildcard
+
+        {:ok, _state} = TestTrunk.delete("coffee.jpg", opts)
+
+        assert Enum.all?(stored_files, fn(path) -> !File.exists?(path) end)
+
+        {:ok, _state} = TestTrunk.delete("coffee.jpg", opts) # It can be run again if files are already deleted.
+      end
+    end)
+
+    test "delete with scope", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, %Trunk.State{}} = TestTrunk.store(original_file, %{id: 42})
+
+      stored_files = Path.join(output_path, "42/*") |> Path.wildcard
+
+      {:ok, _state} = TestTrunk.delete("coffee.jpg", %{id: 42})
+
+      assert Enum.all?(stored_files, fn(path) -> !File.exists?(path) end)
+
+      {:ok, _state} = TestTrunk.delete("coffee.jpg", %{id: 42}) # It can be run again if files are already deleted.
+    end
+  end
+
+  describe "delete/3" do
+    Enum.map([false, true], fn(async) ->
+      test "delete with scope and options async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        opts = [async: unquote(async), versions: [:original, :thumb]]
+        {:ok, %Trunk.State{}} = TestTrunk.store(original_file, %{id: 42}, opts)
+
+        stored_files = Path.join(output_path, "42/*") |> Path.wildcard
+
+        {:ok, _state} = TestTrunk.delete("coffee.jpg", %{id: 42}, opts)
+
+        assert Enum.all?(stored_files, fn(path) -> !File.exists?(path) end)
+
+        {:ok, _state} = TestTrunk.delete("coffee.jpg", %{id: 42}, opts) # It can be run again if files are already deleted.
       end
     end)
   end
