@@ -122,42 +122,42 @@ defmodule Trunk do
         end
       end
 
-      def delete(info, opts \\ [])
+      def delete(file_info, opts \\ [])
 
-      def delete(info, [_ | _] = opts),
-        do: delete(info, nil, opts)
-      def delete(info, scope),
-        do: delete(info, scope, [])
+      def delete(file_info, [_ | _] = opts),
+        do: delete(file_info, nil, opts)
+      def delete(file_info, scope),
+        do: delete(file_info, scope, [])
 
       def delete(<<filename::binary>>, scope, opts),
         do: delete(%{filename: filename}, scope, opts)
-      def delete(info, scope, opts) do
+      def delete(file_info, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        state = State.init(Map.merge(info, %{module: __MODULE__}), scope, opts)
+        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
         Trunk.Processor.delete(state)
       end
 
-      # def url(info, scope \\ nil, version \\ :original, opts \\ [])
-      def url(info),
-        do: url(info, nil, :original, [])
+      # def url(file_info, scope \\ nil, version \\ :original, opts \\ [])
+      def url(file_info),
+        do: url(file_info, nil, :original, [])
 
-      def url(info, [_ | _] = opts),
-        do: url(info, nil, :original, opts)
-      def url(info, version) when is_atom(version),
-        do: url(info, nil, version, [])
-      def url(info, scope),
-        do: url(info, scope, :original, [])
+      def url(file_info, [_ | _] = opts),
+        do: url(file_info, nil, :original, opts)
+      def url(file_info, version) when is_atom(version),
+        do: url(file_info, nil, version, [])
+      def url(file_info, scope),
+        do: url(file_info, scope, :original, [])
 
-      def url(info, version, [_ | _] = opts) when is_atom(version),
-        do: url(info, nil, version, opts)
-      def url(info, scope, [_ | _] = opts),
-        do: url(info, scope, :original, opts)
+      def url(file_info, version, [_ | _] = opts) when is_atom(version),
+        do: url(file_info, nil, version, opts)
+      def url(file_info, scope, [_ | _] = opts),
+        do: url(file_info, scope, :original, opts)
 
       def url(<<filename::binary>>, scope, version, opts),
         do: url(%{filename: filename}, scope, version, opts)
-      def url(%{} = info, scope, version, opts) do
+      def url(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        state = State.init(Map.merge(info, %{module: __MODULE__}), scope, opts)
+        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
 
         Trunk.Processor.generate_url(state, version)
       end
