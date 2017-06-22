@@ -11,6 +11,82 @@ defmodule Trunk do
                storage_opts: [path: "/tmp"]
   end
   ```
+
+  ## Options
+  Options can be set at multiple levels
+  - Global, use `config :trunk, key: :value`
+  - Per otp app, use `config :my_app, trunk: [key: :value]`
+  - Per module, supply options to `use Trunk`. Use `use Trunk, otp_app: :my_app` to read in per otp app options.
+  - Per function, you can supply additional or override options to every function call.
+
+  ### Available options
+  - `:versions` a list of versions as atoms, `[:original, :thumb]`
+  - `:async` (boolean) default `true`, whether to process each version in parallel or in sequence.
+  - `:version_timeout` default `5_000`, how long to wait for each versions transformation to complete when processing in parallel.
+  - `:storage` default `Trunk.Storage.Filesystem`, the storage module to use when storing files and versions
+  - `:storage_opts` default: `[path: ""]`, the options for the storage module. See each storage module's documentation for available options.
+  - `:otp_app`, only used at module level to read options specific to the otp app.
+
+  ## File storage
+  When files are stored, they are passed through a transformation pipeline which allows you to generate different versions of a file.
+  You might get a photo uploaded which you want to save along with a thumbnail. You might have a video which also needs a thumbnail extracted. You could convert a spreadsheet to CSV or a document to PDF.
+
+  At each point in the pipeline you have access to a `Trunk.State` or `Trunk.VersionState` struct which contains information collected at each step. Each state struct has an assigns map (similar to `Plug.Conn`) in which you can store information to be used later in the pipeline process or once storage is complete.
+
+  The storage pipeline goes through the following steps:
+  - `c:preprocess/1` - Here you have access to the information about the file including the path to the file on disk. This is where you can validate the file or extract information that can be useful for later processing. This callback is called only once for the pipeline.
+  - `c:transform/2` - This is where you determine how each version should be transformed. You can return a transformation instruction or a function that will do the actual transformation. This callback is called once per version.
+  - `c:postprocess/3` - Here you have access to information about the version after its transformation. At this point you have access to the state about the version including the path to the temporary file on disk. You can extract information about the version file like file size or hash its contents. This callback is called once per version.
+  - `c:storage_dir/2` - This is where you determine at which path the version should be saved. This callback is called once per version.
+  - `c:filename/2` - This is where you determine which filename the version should be saved as. This callback is called once per version.
+  - The file is saved using the configured storage module.
+
+  ### Example:
+  ```
+  defmodule MyTrunk do
+    use Trunk, versions: [:original, :thumb],
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: "/tmp"]
+
+    # Ensure the file is a JPG or PNG file
+    def preprocess(%Trunk.State{} = state) do
+      if String.downcase(extname) in [".png", ".jpg", ".jpeg"] do
+        {:ok, state}
+      else
+        {:error, "Invalid file"}
+      end3
+    end
+
+    # Do not transform the original file
+    def transform(%Trunk.State{}, :original), do: nil
+    # Resize the file to a thumbnail of maximum 200x200px
+    def transform(%Trunk.State{}, :thumb),
+      do: {:convert, "-strip -thumbnail 200x200> -lmiit area 10MB -limit disk 100MB"}
+
+    # Store the file size of each version
+    def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, %Trunk.State{} = _state) do
+      %File.State{size: file_size} = File.stat(temp_path)
+      {:ok, Trunk.VersionState.assign(version_state, :file_size, file_size)}
+    end
+
+    # Store all versions in a directory based on a model id
+    def storage_dir(%Trunk.State{scope: %{id: model_id}}, _version),
+      do: to_string(model_id)
+
+    # Store the original file with its original filename
+    def filename(%Trunk.State{filename: filename}, :original),
+      do: filename
+    # Store other versions with the version in its filename
+    def filename(%Trunk.State{rootname: rootname, extname: extname}, version),
+      do: "\#{rootname}_\#{version}\#{extname}"
+  end
+
+  iex> {:ok, %Trunk.State{filename: filename, versions: versions}} = MyTrunk.store("/path/to/photo.jpg")
+  iex> filename
+  "photo.jpg"
+  iex> versions |> Enum.map(fn({version, %Trunk.VersionState{assigns: %{file_size: file_size}}}) -> {version, file_size} end)
+  [original: 34567, thumb: 456]
+  ```
   """
 
   alias Trunk.State
@@ -110,7 +186,7 @@ defmodule Trunk do
 
   This is also a place to do any processing that might be needed when transforming versions.
   """
-  @callback preprocess(Trunk.State.t) :: {:ok, Trunk.State.t} | {:error, any}
+  @callback preprocess(state :: Trunk.State.t) :: {:ok, Trunk.State.t} | {:error, any}
 
   @doc ~S"""
   Stores the supplied file. **This function is generated by `use Trunk`**
