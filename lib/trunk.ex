@@ -365,15 +365,23 @@ defmodule Trunk do
   **Note:**  Returning an instruction with an extension will change the extension of the temporary file used in the transformation but will not affect the filename during save. That still needs to be done in `c:filename/2`
 
   Finally a function can be returned which will be wholly responsible for doing the transformation and returning the location of the transformed file.
-  The function should return `{:ok, temp_path}` if successful, or `{:error, reason}` if not.
+  The function should return `{:ok, file_path}` if successful, or `{:error, reason}` if not.
+
+  This example uses `soffice` to transform an XLS document to CSV. The problem is `soffice` doesn’t allow the output file to be specified so the above `{:soffice, [args]}` style can’t be used. To solve this, a transformation function is used to handle the transformation.
+  The function creates a temporary directory for the transformation, runs the `soffice` command and then parses the output for the resulting file.
   ```
-  def transform(%Trunk.State{}, :thumb),
+  def transform(%Trunk.State{extname: extname}, :csv) when extname in [".xls", ".xlsx"],
     do: fn(source_path) ->
-          # Create a temporary file, or do a transformation that results in a new file
-          {:ok, temp_path} = Briefly.create()
-          :ok = File.cp(source_path, temp_path)
-          {:ok, temp_path}
+          {:ok, directory} = Briefly.create(directory: true)
+          # soffice must be in the PATH
+          case System.cmd("soffice", ["--headless", "--convert-to", "csv:Text - txt - csv (StarCalc):44,34,76,0", "--outdir", directory, source_path], stderr_to_stdout: true) do
+            {output, 0} ->
+              [_, path] = Regex.run(~r/-> (.+\.csv)/, output)
+              {:ok, path}
+            {result, _} -> {:error, result}
+          end
         end
+  def transform(_state, _version), do: nil
   ```
   """
   @callback transform(state :: Trunk.State.t, version) :: nil | {command, args} | {command, args, ext} | transform_func
