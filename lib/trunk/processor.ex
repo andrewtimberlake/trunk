@@ -165,10 +165,29 @@ defmodule Trunk.Processor do
   defp get_version_filename(version_state, version, %{module: module} = state),
     do: {:ok, %{version_state | filename: module.filename(state, version)}}
 
-  defp save_version(%{filename: filename, storage_dir: storage_dir, storage_opts: version_storage_opts} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
-    :ok = storage.save(storage_dir, filename, version_state.temp_path || path, Keyword.merge(storage_opts, version_storage_opts))
-
+  defp save_version(%{filename: filename, storage_dir: storage_dir, storage_opts: version_storage_opts, temp_path: temp_path} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
+    storage_opts = Keyword.merge(storage_opts, version_storage_opts)
+    :ok = save_files(temp_path || path, filename, storage, storage_dir, storage_opts)
     {:ok, version_state}
+  end
+
+  defp save_files([], _filename, _storage, _storage_dir, _storate_opts), do: :ok
+  defp save_files([_ | _] = paths, filename, storage, storage_dir, storage_opts) do
+    paths
+    |> Enum.zip(0..length(paths))
+    |> Enum.each(fn({path, i}) ->
+      :ok = save_files(path, multi_filename(filename, i), storage, storage_dir, storage_opts)
+    end)
+    :ok
+  end
+  defp save_files(path, filename, storage, storage_dir, storage_opts),
+    do: storage.save(storage_dir, filename, path, storage_opts)
+
+  defp multi_filename(filename, 0), do: filename
+  defp multi_filename(filename, number) do
+    rootname = Path.rootname(filename)
+    extname = Path.extname(filename)
+    "#{rootname}-#{number}#{extname}"
   end
 
   defp delete_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{storage: storage, storage_opts: storage_opts}) do
