@@ -5,15 +5,15 @@ defmodule Trunk.Processor do
 
   def store(%{async: true} = state) do
     process_async(state, fn(version, map, state) ->
-          with {:ok, map} <- get_version_transform(map, version, state),
-               {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
-               {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
-               {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
-               {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)),
-               {:ok, map} <- get_version_storage_opts(map, version, update_state(state, version, map)) do
-           save_version(map, version, update_state(state, version, map))
-         end
-               end)
+      with {:ok, map} <- get_version_transform(map, version, state),
+           {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
+           {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
+           {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
+           {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)),
+           {:ok, map} <- get_version_storage_opts(map, version, update_state(state, version, map)) do
+        save_version(map, version, update_state(state, version, map))
+      end
+    end)
   end
   def store(%{async: false} = state) do
     with {:ok, state} <- map_versions(state, &get_version_transform/3),
