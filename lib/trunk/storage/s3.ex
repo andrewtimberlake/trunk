@@ -14,6 +14,7 @@ defmodule Trunk.Storage.S3 do
   - `opts` - The options for the storage system
     - `bucket:` (required) The S3 bucket in which to store the object
     - `ex_aws:` (optional) override options for `ex_aws`
+    - All other options are passed through to S3 put object which means you can pass in anything accepted by `t:ExAws.S3.put_object_opts/0` including but not limited to `:acl`, `:meta`, `:content_type`, and `:content_disposition`
 
   ## Example:
   The file will be saved to s3.amazonaws.com/my-bucket/path/to/file.ext
@@ -25,23 +26,19 @@ defmodule Trunk.Storage.S3 do
     key = directory |> Path.join(filename)
     bucket = Keyword.fetch!(opts, :bucket)
     ex_aws_opts = Keyword.get(opts, :ex_aws, [])
-    # {:ok, :done} =
-    #   source_path
-    #   |> ExAws.S3.Upload.stream_file
-    #   |> ExAws.S3.upload(bucket, key)
-    #   |> ExAws.request(Keyword.get(opts, :ex_aws))
+    save_opts = Keyword.drop(opts, [:bucket, :ex_aws])
 
     with {:ok, source_data} <- File.read(source_path),
-         {:ok, _result} <- put_object(bucket, key, source_data, ex_aws_opts) do
+         {:ok, _result} <- put_object(bucket, key, source_data, save_opts, ex_aws_opts) do
       :ok
     else
       error -> error
     end
   end
 
-  defp put_object(bucket, key, source_data, ex_aws_opts) do
+  defp put_object(bucket, key, source_data, storage_opts, ex_aws_opts) do
     bucket
-    |> ExAws.S3.put_object(key, source_data)
+    |> ExAws.S3.put_object(key, source_data, storage_opts)
     |> ExAws.request(ex_aws_opts)
   end
 

@@ -31,6 +31,32 @@ defmodule Trunk.Storage.S3Test do
     end
 
     @tag :s3
+    test "successfully save a file with default permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+      source_path = Path.join(fixtures_path, "coffee.jpg")
+      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, s3_opts)
+      assert file_private?("trunk/new/dir", "new-coffee.jpg", s3_opts)
+      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+    end
+
+    @tag :s3
+    test "successfully save a file with set permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+      source_path = Path.join(fixtures_path, "coffee.jpg")
+      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, Keyword.merge(s3_opts, acl: :public_read))
+      assert file_public?("trunk/new/dir", "new-coffee.jpg", s3_opts)
+      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+    end
+
+    @tag :s3
+    test "successfully save a file with specific headers", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+      source_path = Path.join(fixtures_path, "coffee.jpg")
+      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, Keyword.merge(s3_opts, content_type: "image/wat", content_disposition: "attachment;filename=my-coffee.jpg"))
+      headers = get_headers("trunk/new/dir/new-coffee.jpg", s3_opts)
+      assert {"Content-Type", "image/wat"} in headers
+      assert {"Content-Disposition", "attachment;filename=my-coffee.jpg"} in headers
+      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+    end
+
+    @tag :s3
     test "error reading source file", %{fixtures_path: fixtures_path} do
       assert {:error, :enoent} = S3.save("trunk/new/dir", "new-coffee.jpg", Path.join(fixtures_path, "wrong.jpg"), bucket: ["wrong-bucket"])
     end
@@ -92,6 +118,26 @@ defmodule Trunk.Storage.S3Test do
     end
   end
 
+  # Make a public request for the file to check it fails followed by a signed request to check it succeeds
+  defp file_private?(dir, file_name, opts) do
+    url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: false))
+    {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
+    if status_code == 403 do
+      url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: true))
+      {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
+      status_code == 200
+    else
+      false
+    end
+  end
+
+  # Make a public request for the file to check it succeeds
+  defp file_public?(dir, file_name, opts) do
+    url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: false))
+    {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
+    status_code == 200
+  end
+
   defp file_saved?(path, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
     ex_aws_opts = Keyword.get(opts, :ex_aws, [])
@@ -105,6 +151,18 @@ defmodule Trunk.Storage.S3Test do
       {:ok, _} -> true
       _ -> false
     end
+  end
+
+  defp get_headers(path, opts) do
+    bucket = Keyword.fetch!(opts, :bucket)
+    ex_aws_opts = Keyword.get(opts, :ex_aws, [])
+
+    {:ok, %{headers: headers}} =
+      bucket
+      |> ExAws.S3.head_object(path)
+      |> ExAws.request(ex_aws_opts)
+
+    headers
   end
 
   defp remove_file(path, opts) do

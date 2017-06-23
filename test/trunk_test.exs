@@ -16,6 +16,8 @@ defmodule TrunkTest do
       end
     end
 
+    def storage_opts(%Trunk.State{}, _version), do: [acl: "0600"]
+
     def storage_dir(%Trunk.State{scope: %{id: id}}, _version),
       do: "#{id}"
     def storage_dir(_state, _version),

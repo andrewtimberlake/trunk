@@ -9,7 +9,8 @@ defmodule Trunk.Processor do
                {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
                {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
                {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
-               {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
+               {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)),
+               {:ok, map} <- get_version_storage_opts(map, version, update_state(state, version, map)) do
            save_version(map, version, update_state(state, version, map))
          end
                end)
@@ -19,7 +20,8 @@ defmodule Trunk.Processor do
          {:ok, state} <- map_versions(state, &transform_version/3),
          {:ok, state} <- map_versions(state, &postprocess_version/3),
          {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
-         {:ok, state} <- map_versions(state, &get_version_filename/3) do
+         {:ok, state} <- map_versions(state, &get_version_filename/3),
+         {:ok, state} <- map_versions(state, &get_version_storage_opts/3) do
        map_versions(state, &save_version/3)
     end
   end
@@ -155,13 +157,16 @@ defmodule Trunk.Processor do
     do: prepare_transform_arguments(source, destination, String.split(arguments, " "))
 
   defp get_version_storage_dir(version_state, version, %{module: module} = state),
-    do: {:ok, Map.put(version_state, :storage_dir, module.storage_dir(state, version))}
+    do: {:ok, %{version_state | storage_dir: module.storage_dir(state, version)}}
+
+  defp get_version_storage_opts(version_state, version, %{module: module} = state),
+    do: {:ok, %{version_state | storage_opts: module.storage_opts(state, version)}}
 
   defp get_version_filename(version_state, version, %{module: module} = state),
-    do: {:ok, Map.put(version_state, :filename, module.filename(state, version))}
+    do: {:ok, %{version_state | filename: module.filename(state, version)}}
 
-  defp save_version(%{filename: filename, storage_dir: storage_dir} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
-    :ok = storage.save(storage_dir, filename, version_state.temp_path || path, storage_opts)
+  defp save_version(%{filename: filename, storage_dir: storage_dir, storage_opts: version_storage_opts} = version_state, _version, %{path: path, storage: storage, storage_opts: storage_opts}) do
+    :ok = storage.save(storage_dir, filename, version_state.temp_path || path, Keyword.merge(storage_opts, version_storage_opts))
 
     {:ok, version_state}
   end

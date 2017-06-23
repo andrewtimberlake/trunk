@@ -39,6 +39,7 @@ defmodule Trunk do
   - `c:postprocess/3` - Here you have access to information about the version after its transformation. At this point you have access to the state about the version including the path to the temporary file on disk. You can extract information about the version file like file size or hash its contents. This callback is called once per version.
   - `c:storage_dir/2` - This is where you determine at which path the version should be saved. This callback is called once per version.
   - `c:filename/2` - This is where you determine which filename the version should be saved as. This callback is called once per version.
+  - `c:storage_opts/2` - This allows you to set additional storage options like file permissions `:acl` or add things like S3 headers (Check with the storage module as to what options are avialble to be set here). This callback is called once per version.
   - The file is saved using the configured storage module.
 
   ### Example:
@@ -79,6 +80,11 @@ defmodule Trunk do
     # Store other versions with the version in its filename
     def filename(%Trunk.State{rootname: rootname, extname: extname}, version),
       do: "\#{rootname}_\#{version}\#{extname}"
+
+    def storage_opts(%Trunk.State{}, :original),
+      do: [acl: 0o600]
+    def storage_opts(%Trunk.State{}, :thumb),
+      do: [acl: 0o644]
   end
 
   > {:ok, %Trunk.State{filename: filename, versions: versions}} = MyTrunk.store("/path/to/photo.jpg")
@@ -102,8 +108,7 @@ defmodule Trunk do
         do: store(file, nil, opts)
       def store(<<"http", _rest::binary>> = url, scope, opts) do
         filename = Path.basename(url)
-        {:ok, 200, _headers, ref} = :hackney.get(url, [], [], [])
-        {:ok, body} = :hackney.body(ref)
+        {:ok, 200, _headers, body} = :hackney.get(url, [], [], [with_body: true])
         store(%{filename: filename, binary: body}, scope, opts)
       end
       def store(file, scope, opts) when is_binary(file),
@@ -165,17 +170,19 @@ defmodule Trunk do
       # Default implementations of callback functions
       def preprocess(state), do: {:ok, state}
 
-      def postprocess(version_state, version, state), do: {:ok, version_state}
+      def postprocess(version_state, _version, _state), do: {:ok, version_state}
+
+      def transform(_state, _version), do: nil
+
+      def storage_dir(_state, _version), do: ""
 
       def filename(%{filename: filename}, :original), do: filename
       def filename(%{rootname: rootname, extname: extname}, version),
         do: "#{rootname}_#{version}#{extname}"
 
-      def storage_dir(state, version), do: ""
+      def storage_opts(_state, _version), do: []
 
-      def transform(state, version), do: nil
-
-      defoverridable preprocess: 1, postprocess: 3, transform: 2, filename: 2, storage_dir: 2
+      defoverridable preprocess: 1, postprocess: 3, transform: 2, filename: 2, storage_dir: 2, storage_opts: 2
     end
   end
 
@@ -330,6 +337,25 @@ defmodule Trunk do
   ```
   """
   @callback storage_dir(state :: Trunk.State.t, version) :: String.t
+
+  @type storage_opts :: Keyword.t
+  @doc ~S"""
+  A callback that should be used to set version specific storage options.
+
+  This is the place to set access permissions, storage headers (s3) and other options provided by the storage module.
+
+  This callback should return a list of options.
+
+  Example:
+  ```
+  # With Filesystem
+  def storage_opts(_state, _version), do: [acl: "0600"]
+
+  # With S3
+  def storage_opts(_state, _version), do: [acl: :public_read]
+  ```
+  """
+  @callback storage_opts(state :: Trunk.State.t, version) :: storage_opts
 
   @type command :: atom | binary
   @type args :: String.t | [binary]

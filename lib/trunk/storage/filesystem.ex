@@ -13,6 +13,7 @@ defmodule Trunk.Storage.Filesystem do
   - `source_path` - The full path to the file to be stored. This is a path to the uploaded file or a temporary file that has undergone transformation
   - `opts` - The options for the storage system
     - `path:` (required) The base path within which to save files
+    - `acl:` (optional) The file mode to store the file (accepts octal `0o644` or string `"0644"`). See `File.chmod/2` for more info.
 
   ## Example:
   The file will be saved to /opts/uploads/path/to/file.ext
@@ -22,11 +23,21 @@ defmodule Trunk.Storage.Filesystem do
   @spec save(String.t, String.t, String.t, keyword) :: :ok | {:error, :file.posix}
   def save(directory, filename, source_path, opts \\ []) do
     base_directory = Keyword.fetch!(opts, :path)
-    save_path = base_directory |> Path.join(directory)
+    save_path = Path.join(base_directory, directory)
+    file_path = Path.join(save_path, filename)
     with :ok = File.mkdir_p(save_path) do
-      File.cp(source_path, Path.join(save_path, filename))
+      result = File.cp(source_path, file_path)
+      acl = parse_acl(Keyword.get(opts, :acl))
+      if acl, do: File.chmod(file_path, acl), else: result
     end
   end
+
+  defp parse_acl(nil), do: nil
+  defp parse_acl(<<mode::binary>>) do
+    {number, ""} = Integer.parse(mode, 8)
+    number
+  end
+  defp parse_acl(number) when is_number(number), do: number
 
   @doc ~S"""
   Deletes the file from the file system.

@@ -16,6 +16,16 @@ defmodule Trunk.Storage.FilesystemTest do
       assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
 
+    test "will save a file with specific access permissions (string)", %{output_path: output_path, fixtures_path: fixtures_path} do
+      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: "0600")
+      assert "600" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
+    end
+
+    test "will save a file with specific access permissions (number)", %{output_path: output_path, fixtures_path: fixtures_path} do
+      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: 0o640)
+      assert "640" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
+    end
+
     test "error saving file", %{output_path: output_path, fixtures_path: fixtures_path} do
       assert {:error, :enoent} = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "wrong.jpg"), path: output_path)
     end
@@ -37,5 +47,11 @@ defmodule Trunk.Storage.FilesystemTest do
       assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "http://example.com/uploads/") == "http://example.com/uploads/new/dir/new-coffee.jpg"
       assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "/uploads/") == "/uploads/new/dir/new-coffee.jpg"
     end
+  end
+
+  defp print_file_permissions(path) do
+    require Bitwise
+    {:ok, %{mode: mode}} = File.stat(path)
+    :io_lib.format('~.8B', [Bitwise.band(mode, 0o777)]) |> to_string
   end
 end
