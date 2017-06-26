@@ -34,10 +34,14 @@ defmodule Trunk.Storage.Filesystem do
 
   defp parse_acl(nil), do: nil
   defp parse_acl(<<mode::binary>>) do
-    {number, ""} = Integer.parse(mode, 8)
-    number
+    case Integer.parse(mode, 8) do
+      {number, ""} -> number
+      _ -> nil
+      nil
+    end
   end
-  defp parse_acl(number) when is_number(number), do: number
+  defp parse_acl(mode) when is_number(mode), do: mode
+  defp parse_acl(mode) when is_atom(mode), do: nil
 
   @doc ~S"""
   Deletes the file from the file system.

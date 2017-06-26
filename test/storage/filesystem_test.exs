@@ -21,6 +21,11 @@ defmodule Trunk.Storage.FilesystemTest do
       assert "600" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
 
+    test "ignores unparsable acl", %{output_path: output_path, fixtures_path: fixtures_path} do
+      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: "wat")
+      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: :private)
+    end
+
     test "will save a file with specific access permissions (number)", %{output_path: output_path, fixtures_path: fixtures_path} do
       assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: 0o640)
       assert "640" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
