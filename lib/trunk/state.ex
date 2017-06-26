@@ -5,7 +5,20 @@ defmodule Trunk.State do
 
   alias Trunk.VersionState
 
-  defstruct module: nil, opts: [], filename: nil, rootname: nil, extname: nil, path: nil, versions: %{}, async: true, version_timeout: 5_000, scope: %{}, storage: nil, storage_opts: [], errors: nil, assigns: %{}
+  defstruct module: nil,
+            opts: [],
+            filename: nil,
+            rootname: nil,
+            extname: nil,
+            path: nil,
+            versions: %{},
+            async: true,
+            version_timeout: 5_000,
+            scope: %{},
+            storage: nil,
+            storage_opts: [],
+            errors: nil,
+            assigns: %{}
   @type t :: %__MODULE__{module: atom, opts: Keyword.t, filename: String.t, rootname: String.t, extname: String.t, path: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
   def init(%{} = info, scope, opts) do
