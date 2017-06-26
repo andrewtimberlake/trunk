@@ -151,6 +151,8 @@ defmodule Trunk.Processor do
     end
   end
 
+  defp prepare_transform_arguments(source, destination, arguments) when is_function(arguments),
+    do: arguments.(source, destination)
   defp prepare_transform_arguments(source, destination, [_ | _] = arguments),
     do: [source | arguments] ++ [destination]
   defp prepare_transform_arguments(source, destination, arguments),

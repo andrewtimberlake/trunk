@@ -38,11 +38,7 @@ defmodule TrunkTest do
     def transform(_, :transform_error),
       do: {:convert, "-strip -wrongOption"}
     def transform(_, :function),
-      do: fn(input) ->
-        {:ok, temp_file} = Briefly.create(extname: ".pdf")
-        {_output, 0} = System.cmd("convert", [input, temp_file])
-        {:ok, temp_file}
-      end
+      do: {:convert, fn(input, output) -> ["-density", "300", input, "-flatten", "-strip", "-thumbnail", "200x200>", output] end, :jpg}
     def transform(junk, version), do: super(junk, version)
   end
 
