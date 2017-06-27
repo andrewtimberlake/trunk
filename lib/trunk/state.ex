@@ -9,6 +9,7 @@ defmodule Trunk.State do
             opts: [],
             filename: nil,
             rootname: nil,
+            lower_extname: nil,
             extname: nil,
             path: nil,
             versions: %{},
@@ -20,19 +21,21 @@ defmodule Trunk.State do
             errors: nil,
             assigns: %{}
   @type opts :: Keyword.t
-  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, path: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
+  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
   def init(%{} = info, scope, opts) do
     filename = info[:filename]
     module = info[:module]
     path = info[:path]
+    extname = Path.extname(filename)
 
     %__MODULE__{
       module: module,
       path: path,
       opts: opts,
       filename: filename,
-      extname: Path.extname(filename),
+      extname: extname,
+      lower_extname: String.downcase(extname),
       rootname: Path.rootname(filename),
       versions: opts |> Keyword.fetch!(:versions) |> Enum.map(&({&1, %VersionState{}})) |> Map.new,
       version_timeout: Keyword.fetch!(opts, :version_timeout),

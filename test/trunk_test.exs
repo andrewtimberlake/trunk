@@ -8,8 +8,8 @@ defmodule TrunkTest do
                storage: Trunk.Storage.Filesystem,
                storage_opts: [path: unquote(output_path)]
 
-    def preprocess(%Trunk.State{extname: extname} = state) do
-      if String.downcase(extname) in [".png", ".jpg", ".jpeg"] do
+    def preprocess(%Trunk.State{lower_extname: extname} = state) do
+      if extname in [".png", ".jpg", ".jpeg"] do
         {:ok, state}
       else
         {:error, "Invalid file"}
@@ -196,6 +196,14 @@ defmodule TrunkTest do
       test "preprocessing error async:#{async}" do
         original_file = Path.join(__DIR__, "fixtures/coffee.doc")
         assert {:error, "Invalid file"} = TestTrunk.store(original_file,
+          %{id: 42}, async: unquote(async))
+      end
+
+      test "preprocessing using lower_extname async:#{async}", %{output_path: output_path} do
+        source_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        original_file = Path.join(output_path, "source.JPG")
+        File.cp(source_file, original_file)
+        assert {:ok, _state} = TestTrunk.store(original_file,
           %{id: 42}, async: unquote(async))
       end
     end)
