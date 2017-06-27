@@ -4,7 +4,7 @@
 
 This example does nothing but implement Trunk and override the `c:Trunk.transform/2` callback for the `:thumbnail` version
 
-```
+```elixir
 defmodule MyTrunk do
   use Trunk, versions: [:original, :thumbnail]
 
@@ -22,7 +22,7 @@ end
 
 This example simply shows a full implementation with all the callback functions overridden.
 
-```
+```elixir
 defmodule MyTrunk do
   use Trunk, versions: [:original, :thumbnail],
              storage: Trunk.Storage.S3,
