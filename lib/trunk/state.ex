@@ -53,7 +53,7 @@ defmodule Trunk.State do
   ```
   iex> state.errors
   nil
-  iex> state = put_error(state, :thumb, :transform, "Error with convert blah blah")
+  iex> state = Trunk.State.put_error(state, :thumb, :transform, "Error with convert blah blah")
   iex> state.errors
   %{thumb: [transform: "Error with convert blah blah"]}
   ```
@@ -68,7 +68,7 @@ defmodule Trunk.State do
   ```
   iex> state.assigns[:hello]
   nil
-  iex> state = assign(state, :hello, :world)
+  iex> state = Trunk.State.assign(state, :hello, :world)
   iex> state.assigns[:hello]
   :world
   ```
@@ -77,6 +77,20 @@ defmodule Trunk.State do
   def assign(%{assigns: assigns} = state, key, value),
     do: %{state | assigns: Map.put(assigns, key, value)}
 
+  @doc ~S"""
+  Retrieves an assign value for a specific version.
+
+  ## Example:
+  ```
+  iex> state = %Trunk.State{versions: %{thumbnail: %Trunk.VersionState{assigns: %{hello: :world}}}}
+  iex> %Trunk.State.get_version_assign(state, :thumbnail, :hello)
+  :world
+  iex> %Trunk.State.get_version_assign(state, :thumbnail, :unknown)
+  nil
+  ```
+  """
+  @type version :: atom
+  @spec get_version_assign(state :: Trunk.State.t, version, assign :: atom) :: any | nil
   def get_version_assign(%{versions: versions}, version, assign) do
     case versions[version] do
       %{assigns: %{^assign => value}} -> value
