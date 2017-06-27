@@ -1,4 +1,5 @@
 # Trunk
+[![Build Status](https://travis-ci.org/andrewtimberlake/trunk.svg?branch=master)](https://travis-ci.org/andrewtimberlake/trunk)
 
 **A file attachment/storage library for Elixir**
 
