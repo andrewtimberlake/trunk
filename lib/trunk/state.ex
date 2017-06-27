@@ -81,7 +81,7 @@ defmodule Trunk.State do
   - `:as` - How to save the state.
     - `:string` - Default, will just save the file name. An error will be raised if there are any assigns unless `:ignore_assigns` is set to tru
     - `:map` - will save a map with keys `:filename`, `:assigns`, and `:version_assigns`
-    - `:json` - will save a map encoded as JSON
+    - `:json` - will save a map encoded as JSON (Requires Poison library to be included in deps)
   - `:ignore_assigns` boolean, default false. Use this to save as string and ignore any assigns (Make sure you’re not using assigns for `c:Trunk.storage_dir/2` or `c:Trunk.filename/2`)
   - `:assigns` - a list of keys to save from the assigns hashes
 
@@ -112,7 +112,8 @@ defmodule Trunk.State do
     unless Keyword.get(opts, :ignore_assigns, false), do: assert_no_assigns(state)
     filename
   end
-  defp save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!
+  if Code.ensure_loaded?(Poison),
+    do: defp save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!
   defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts),
     do: %{filename: filename,
           assigns: save_assigns(assigns, Keyword.get(opts, :assigns, :all)),
@@ -147,12 +148,14 @@ defmodule Trunk.State do
   @type file_info :: String.t | map
   @spec restore(file_info) :: Trunk.State.t
   def restore(file_info)
-  def restore(<<"{", _rest::binary>> = json) do
-    {:ok, map} = Poison.decode(json)
-    map
-    |> keys_to_atom
-    |> restore
+  if Code.ensure_loaded?(Poison) do
+    def restore(<<"{", _rest::binary>> = json) do
+      {:ok, map} = Poison.decode(json)
+      map
+      |> keys_to_atom
+      |> restore
 
+    end
   end
   def restore(<<filename::binary>>),
     do: %__MODULE__{filename: filename}
