@@ -62,10 +62,8 @@ defmodule TrunkTest do
 
     def storage_dir(%Trunk.State{assigns: %{hash: hash}}, :original),
       do: "#{hash}"
-    def storage_dir(%Trunk.State{assigns: %{hash: hash}, versions: versions}, version) do
-      %{assigns: %{hash: version_hash}} = versions[version]
-      "#{hash}/#{version_hash}"
-    end
+    def storage_dir(%Trunk.State{assigns: %{hash: hash}} = state, version),
+      do: "#{hash}/#{Trunk.State.get_version_assign(state, version, :hash)}"
 
     def transform(_, :thumb),
       do: {:convert, "-strip -thumbnail 100x100>"}

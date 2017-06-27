@@ -13,6 +13,16 @@ defmodule Trunk.StateTest do
     assert state.assigns[:my_key] == :my_value
   end
 
+  describe "get_version_assign/3" do
+    test "returns the assign for the specific version" do
+      state = %State{versions: %{thumbnail: %VersionState{assigns: %{hash: "889c00fed0f5382b4bdea612ae7a42df"}}}}
+      assert State.get_version_assign(state, :thumbnail, :hash) == "889c00fed0f5382b4bdea612ae7a42df"
+
+      assert State.get_version_assign(state, :thumbnail, :unknown) == nil
+      assert State.get_version_assign(state, :unknown, :hash) == nil
+    end
+  end
+
   describe "save/2" do
     test "saves the filename by default" do
       state = %State{filename: "test.jpg"}

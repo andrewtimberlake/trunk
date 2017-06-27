@@ -77,6 +77,13 @@ defmodule Trunk.State do
   def assign(%{assigns: assigns} = state, key, value),
     do: %{state | assigns: Map.put(assigns, key, value)}
 
+  def get_version_assign(%{versions: versions}, version, assign) do
+    case versions[version] do
+      %{assigns: %{^assign => value}} -> value
+      _ -> nil
+    end
+  end
+
   @doc ~S"""
   Extracts the data needed from the state in order to reconstruct the file paths in future.
 
