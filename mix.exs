@@ -12,7 +12,8 @@ defmodule Trunk.Mixfile do
       start_permanent: Mix.env == :prod,
       description: "A file attachment/storage library for Elixir",
       package: package(),
-      deps: deps()
+      deps: deps(),
+      docs: docs(),
     ]
   end
 
@@ -21,6 +22,12 @@ defmodule Trunk.Mixfile do
       maintainers: ["Andrew Timberlake"],
       licenses: ["MIT"],
       links: %{"GitHub" => @github_url},
+    ]
+  end
+
+  def docs do
+    [
+      extras: ["EXAMPLES.md"]
     ]
   end
 
