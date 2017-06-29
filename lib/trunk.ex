@@ -103,6 +103,9 @@ defmodule Trunk do
     quote location: :keep do
       @behaviour Trunk
 
+      require Trunk
+      import Trunk, only: [validate_file_extensions: 1]
+
       def store(file, scope \\ nil, opts \\ [])
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)
@@ -186,6 +189,31 @@ defmodule Trunk do
     end
   end
 
+  @doc ~S"""
+  A convenience macro for generating a `c:preprocess/1` function that validates the file being saved against a list of approved extensions (case-insensitive).
+
+  ## Example:
+  ```
+  defmodule MyTrunk do
+    use Trunk, versions: [:original]
+
+    validate_file_extensions ~w[.jpg .jpeg .png]
+  end
+  ```
+  """
+  defmacro validate_file_extensions(extensions) do
+    lower_extensions = Enum.map(Macro.expand(extensions, __CALLER__), &String.downcase/1)
+    quote do
+      def preprocess(%{lower_extname: extname} = state) do
+        if extname in unquote(lower_extensions) do
+          {:ok, state}
+        else
+          {:error, "Invalid file"}
+        end
+      end
+    end
+  end
+
   @type scope :: map | struct
   @type opts :: Keyword.t
   @type version :: atom
@@ -195,11 +223,11 @@ defmodule Trunk do
   @doc ~S"""
   A callback that can be used to do any preprocessing on the state before transformation and storage begins.
 
-  This is a good place to do file validation.
+  This is a good place to do file validation (**Note** this example is wrapped in a convenience macro `validate_file_extensions/1`.
   ## Example
   ```
-  def preprocess(%Trunk.State{extname: extname} = state) do
-    if String.downcase(extname) in [".jpg", ".png"] do
+  def preprocess(%Trunk.State{lower_extname: extname} = state) do
+    if extname in [".jpg", ".png"] do
       {:ok, state}
     else
       {:error, "Invalid file"}

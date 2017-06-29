@@ -70,6 +70,15 @@ defmodule TrunkTest do
     def transform(junk, version), do: super(junk, version)
   end
 
+  defmodule ValidateTrunk do
+    output_path = Path.join(__DIR__, "output")
+    use Trunk, versions: [:original],
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: unquote(output_path)]
+
+    validate_file_extensions ~w[.jpg .jpeg .png]
+  end
+
   setup do
     # Delete and recreate on setup rather than create on setup and create on exit
     #   because then the files can be visually inspected after a test
@@ -335,6 +344,20 @@ defmodule TrunkTest do
     test "with just a filename" do
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :original, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee_thumb.jpg"
+    end
+  end
+
+  describe "validate_file_extensions/1" do
+    test "returns error for invalid extension" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.doc")
+      assert {:error, "Invalid file"} = ValidateTrunk.store(original_file)
+    end
+
+    test "does test on lowercase file extension", %{output_path: output_path} do
+      source_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      original_file = Path.join(output_path, "source.JPG")
+      File.cp(source_file, original_file)
+      assert {:ok, _state} = ValidateTrunk.store(original_file)
     end
   end
 
