@@ -76,17 +76,20 @@ defmodule Trunk.OptionsTest do
   describe "method options" do
     setup do
       Application.put_env(:trunk, :version_timeout, 10_000)
+      Application.put_env(:trunk, :storage_opts, [bucket: "my-bucket"])
       Application.put_env(:test_app, :trunk, async: false, version_timeout: 15_000)
 
       on_exit(fn ->
         Application.delete_env(:trunk, :version_timeout)
+        Application.delete_env(:trunk, :storage_opts)
         Application.delete_env(:test_app, :trunk)
       end)
     end
 
     test "method options override defaults and global" do
-      options = Options.parse([version_timeout: 20_000], [version_timeout: 25_000])
+      options = Options.parse([version_timeout: 20_000], [version_timeout: 25_000, storage_opts: [signed: true]])
       assert Keyword.get(options, :version_timeout) == 25_000
+      assert Keyword.get(options, :storage_opts) == [path: "", bucket: "my-bucket", signed: true]
     end
 
     test "module options override defaults, global and otp app" do
