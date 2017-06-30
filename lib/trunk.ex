@@ -27,6 +27,9 @@ defmodule Trunk do
   - `:storage_opts` default: `[path: ""]`, the options for the storage module. See each storage module's documentation for available options.
   - `:otp_app`, only used at module level to read options specific to the otp app.
 
+  ### Additional options
+  Any extra options passed in at the otp app, module or function level are made available in the `opts` field of `Trunk.State`. This means that you can pass in any options you might need to use in any of the processing steps.
+
   ## File storage
   When files are stored, they are passed through a transformation pipeline which allows you to generate different versions of a file.
   You might get a photo uploaded which you want to save along with a thumbnail. You might have a video which also needs a thumbnail extracted. You could convert a spreadsheet to CSV or a document to PDF.

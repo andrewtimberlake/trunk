@@ -70,15 +70,6 @@ defmodule TrunkTest do
     def transform(junk, version), do: super(junk, version)
   end
 
-  defmodule ValidateTrunk do
-    output_path = Path.join(__DIR__, "output")
-    use Trunk, versions: [:original],
-               storage: Trunk.Storage.Filesystem,
-               storage_opts: [path: unquote(output_path)]
-
-    validate_file_extensions ~w[.jpg .jpeg .png]
-  end
-
   setup do
     # Delete and recreate on setup rather than create on setup and create on exit
     #   because then the files can be visually inspected after a test
@@ -216,6 +207,58 @@ defmodule TrunkTest do
     end)
   end
 
+  describe "validate_file_extensions/1" do
+    defmodule ValidateTrunk do
+      output_path = Path.join(__DIR__, "output")
+      use Trunk, versions: [:original],
+                 storage: Trunk.Storage.Filesystem,
+                 storage_opts: [path: unquote(output_path)]
+
+      validate_file_extensions ~w[.jpg .jpeg .png]
+    end
+
+    test "returns error for invalid extension" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.doc")
+      assert {:error, :invalid_file} = ValidateTrunk.store(original_file)
+    end
+
+    test "does test on lowercase file extension", %{output_path: output_path} do
+      source_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      original_file = Path.join(output_path, "source.JPG")
+      File.cp(source_file, original_file)
+      assert {:ok, _state} = ValidateTrunk.store(original_file)
+    end
+  end
+
+  describe "multiple fields per model" do
+    defmodule MultiFieldTrunk do
+      output_path = Path.join(__DIR__, "output")
+      use Trunk, versions: [:original, :thumbnail],
+                 storage: Trunk.Storage.Filesystem,
+                 storage_opts: [path: unquote(output_path)]
+
+      def storage_dir(%{scope: %{id: model_id}, opts: opts}, _version),
+        do: "#{model_id}/#{Keyword.fetch!(opts, :field)}"
+    end
+
+    setup do
+      model = %{id: 42, image1: nil, image2: nil}
+      output_path = Path.join(__DIR__, "output")
+      {:ok, model: model, output_path: output_path}
+    end
+
+    test "it stores images in two directories with a single model", %{model: model, output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, _state} = MultiFieldTrunk.store(original_file, model, field: "image1")
+      {:ok, _state} = MultiFieldTrunk.store(original_file, model, field: "image2")
+
+      assert File.exists?(Path.join(output_path, "42/image1/coffee.jpg"))
+      assert File.exists?(Path.join(output_path, "42/image1/coffee_thumbnail.jpg"))
+      assert File.exists?(Path.join(output_path, "42/image2/coffee.jpg"))
+      assert File.exists?(Path.join(output_path, "42/image2/coffee_thumbnail.jpg"))
+    end
+  end
+
   describe "delete/1" do
     test "it deletes the files from storage", %{output_path: output_path} do
       original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
@@ -344,20 +387,6 @@ defmodule TrunkTest do
     test "with just a filename" do
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :original, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
       assert TestTrunk.url("coffee.jpg", %{id: 42}, :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee_thumb.jpg"
-    end
-  end
-
-  describe "validate_file_extensions/1" do
-    test "returns error for invalid extension" do
-      original_file = Path.join(__DIR__, "fixtures/coffee.doc")
-      assert {:error, :invalid_file} = ValidateTrunk.store(original_file)
-    end
-
-    test "does test on lowercase file extension", %{output_path: output_path} do
-      source_file = Path.join(__DIR__, "fixtures/coffee.jpg")
-      original_file = Path.join(output_path, "source.JPG")
-      File.cp(source_file, original_file)
-      assert {:ok, _state} = ValidateTrunk.store(original_file)
     end
   end
 

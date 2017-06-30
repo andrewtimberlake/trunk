@@ -12,10 +12,10 @@ defmodule Trunk.Options do
 
     defaults
     |> Keyword.merge(Application.get_all_env(:trunk), &merge_values/3)
+    |> filter_options
     |> merge_otp_app_opts(module_opts)
     |> Keyword.merge(module_opts, &merge_values/3)
     |> Keyword.merge(method_opts, &merge_values/3)
-    |> filter_options
   end
 
   defp merge_otp_app_opts(opts, module_opts) do
