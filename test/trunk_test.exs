@@ -350,7 +350,7 @@ defmodule TrunkTest do
   describe "validate_file_extensions/1" do
     test "returns error for invalid extension" do
       original_file = Path.join(__DIR__, "fixtures/coffee.doc")
-      assert {:error, "Invalid file"} = ValidateTrunk.store(original_file)
+      assert {:error, :invalid_file} = ValidateTrunk.store(original_file)
     end
 
     test "does test on lowercase file extension", %{output_path: output_path} do

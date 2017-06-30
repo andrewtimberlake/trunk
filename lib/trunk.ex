@@ -208,7 +208,7 @@ defmodule Trunk do
         if extname in unquote(lower_extensions) do
           {:ok, state}
         else
-          {:error, "Invalid file"}
+          {:error, :invalid_file}
         end
       end
     end
