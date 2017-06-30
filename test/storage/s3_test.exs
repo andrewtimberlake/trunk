@@ -25,35 +25,39 @@ defmodule Trunk.Storage.S3Test do
     @tag :s3
     test "successfully save a file", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = Path.join(fixtures_path, "coffee.jpg")
-      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, s3_opts)
-      assert file_saved?("trunk/new/dir/new-coffee.jpg", s3_opts)
-      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, s3_opts)
+      assert file_saved?("#{dir}/new-coffee.jpg", s3_opts)
+      remove_file("#{dir}/new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
     test "successfully save a file with default permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = Path.join(fixtures_path, "coffee.jpg")
-      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, s3_opts)
-      assert file_private?("trunk/new/dir", "new-coffee.jpg", s3_opts)
-      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, s3_opts)
+      assert file_private?(dir, "new-coffee.jpg", s3_opts)
+      remove_file("#{dir}/new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
     test "successfully save a file with set permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = Path.join(fixtures_path, "coffee.jpg")
-      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, Keyword.merge(s3_opts, acl: :public_read))
-      assert file_public?("trunk/new/dir", "new-coffee.jpg", s3_opts)
-      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, Keyword.merge(s3_opts, acl: :public_read))
+      assert file_public?(dir, "new-coffee.jpg", s3_opts)
+      remove_file("#{dir}/new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
     test "successfully save a file with specific headers", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = Path.join(fixtures_path, "coffee.jpg")
-      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, Keyword.merge(s3_opts, content_type: "image/wat", content_disposition: "attachment;filename=my-coffee.jpg"))
-      headers = get_headers("trunk/new/dir/new-coffee.jpg", s3_opts)
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, Keyword.merge(s3_opts, content_type: "image/wat", content_disposition: "attachment;filename=my-coffee.jpg"))
+      headers = get_headers("#{dir}/new-coffee.jpg", s3_opts)
       assert {"Content-Type", "image/wat"} in headers
       assert {"Content-Disposition", "attachment;filename=my-coffee.jpg"} in headers
-      remove_file("trunk/new/dir/new-coffee.jpg", s3_opts)
+      remove_file("#{dir}/new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
@@ -73,11 +77,12 @@ defmodule Trunk.Storage.S3Test do
     @tag :s3
     test "successfully remove a file", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = Path.join(fixtures_path, "coffee.jpg")
-      assert :ok = S3.save("trunk/new/dir", "new-coffee.jpg", source_path, s3_opts)
-      assert file_saved?("trunk/new/dir/new-coffee.jpg", s3_opts)
-      assert :ok = S3.delete("trunk/new/dir", "new-coffee.jpg", s3_opts)
-      refute file_saved?("trunk/new/dir/new-coffee.jpg", s3_opts)
-      assert :ok = S3.delete("trunk/new/dir", "new-coffee.jpg", s3_opts) # Can remove the file again without error
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, s3_opts)
+      assert file_saved?("#{dir}/new-coffee.jpg", s3_opts)
+      assert :ok = S3.delete(dir, "new-coffee.jpg", s3_opts)
+      refute file_saved?("#{dir}/new-coffee.jpg", s3_opts)
+      assert :ok = S3.delete(dir, "new-coffee.jpg", s3_opts) # Can remove the file again without error
     end
 
     @tag :s3
