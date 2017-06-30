@@ -1,27 +1,44 @@
 defmodule Trunk.State do
   @moduledoc """
   This module defines a `Trunk.State` struct and provides some helper functions for working with that state.
+
+  ## Fields
+  The following fields are available in the state object. Some values are filled in during processing.
+  - `filename` - The base filename of the file being processed. (e.g. `"photo.jpg"`)
+  - `rootname` - The root of the filen being processed. (e.g. `"photo"`)
+  - `extname` - The file extension of the file being processed. (e.g. `".jpg"`)
+  - `lower_extname` - The file extension of the file being processed forced to lower case (e.g. `"*.jpg"`, even if the file is `"PHOTO.JPG"`)
+  - `path` - The full path to the file being processed. If the file was passed in as a binary, it is a path to the temporary file created with that binary.
+  - `versions` - A map of the versions and their respective `Trunk.VersionState` (e.g. `%{original: %Trunk.VersionState{}, thumbnail: %Trunk.VersionState{}}`)
+  - `scope` - A user struct/map passed in useful for determining storage locations and file naming.
+  - `async` - A boolean indicator of whether processing will be done in parallel.
+  - `version_timeout` - The timeout after which each processing process will be terminated. (Only applies with `async: true`)
+  - `storage` - The module to use for storage processing. (e.g. `Trunk.Storage.Filesystem` or `Trunk.Storage.S3`)
+  - `storage_opts` - A keyword list of options for the `storage` module
+  - `errors` - a place to record errors encountered during processing. (`nli` if no errors, otherwise a map of errors)
+  - `opts` - All the options merged together (see Options in `Trunk` module documentation).
+  - `assigns` - shared user data as a map (Same as assigns in  `Plug.Conn`)
   """
 
   alias Trunk.VersionState
 
   defstruct module: nil,
-            opts: [],
+            path: nil,
             filename: nil,
             rootname: nil,
-            lower_extname: nil,
             extname: nil,
-            path: nil,
+            lower_extname: nil,
             versions: %{},
+            scope: %{},
             async: true,
             version_timeout: 5_000,
-            scope: %{},
             storage: nil,
             storage_opts: [],
             errors: nil,
+            opts: [],
             assigns: %{}
   @type opts :: Keyword.t
-  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: list(atom) | Keyword.t, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
+  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: map, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
   def init(%{} = info, scope, opts) do
     filename = info[:filename]
