@@ -41,25 +41,19 @@ defmodule Trunk.State do
   @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: map, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
   def init(%{} = info, scope, opts) do
-    filename = info[:filename]
-    module = info[:module]
-    path = info[:path]
-    extname = Path.extname(filename)
-
-    %__MODULE__{
-      module: module,
-      path: path,
-      opts: opts,
-      filename: filename,
+    state = restore(info, opts)
+    rootname = Path.rootname(state.filename)
+    extname = Path.extname(state.filename)
+    %{state |
       extname: extname,
       lower_extname: String.downcase(extname),
-      rootname: Path.rootname(filename),
-      versions: opts |> Keyword.fetch!(:versions) |> Enum.map(&({&1, %VersionState{}})) |> Map.new,
+      rootname: rootname,
       version_timeout: Keyword.fetch!(opts, :version_timeout),
       async: Keyword.fetch!(opts, :async),
       storage: Keyword.fetch!(opts, :storage),
       storage_opts: Keyword.fetch!(opts, :storage_opts),
       scope: scope,
+      opts: opts,
     }
   end
 
@@ -155,12 +149,12 @@ defmodule Trunk.State do
   end
   if Code.ensure_loaded?(Poison),
     do: defp save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!
-  defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts),
-    do: %{filename: filename,
-          assigns: save_assigns(assigns, Keyword.get(opts, :assigns, :all)),
-          version_assigns: versions |> Enum.map(fn({version, %{assigns: assigns}}) ->
-            {version, save_assigns(assigns, Keyword.get(opts, :assigns, :all))}
-          end) |> Map.new}
+  defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts) do
+    assigns_to_save = Keyword.get(opts, :assigns, :all)
+    %{filename: filename}
+    |> save_assigns(assigns, assigns_to_save)
+    |> save_version_assigns(versions, assigns_to_save)
+  end
 
   defp assert_no_assigns(%{assigns: assigns}) when assigns != %{},
     do: raise ArgumentError, message: "Cannot save state as string with non-empty assigns hash"
@@ -168,8 +162,24 @@ defmodule Trunk.State do
     do: Enum.each(versions, fn({_version, state}) -> assert_no_assigns(state) end)
   defp assert_no_assigns(%{}), do: nil
 
-  defp save_assigns(map, :all), do: map
-  defp save_assigns(map, keys), do: Map.take(map, keys)
+  defp save_assigns(map, assigns, _keys) when assigns == %{}, do: map
+  defp save_assigns(map, assigns, :all), do: Map.put(map, :assigns, assigns)
+  defp save_assigns(map, assigns, keys), do: Map.put(map, :assigns, Map.take(assigns, keys))
+
+  defp save_version_assigns(map, versions, keys) do
+    version_assigns =
+      versions
+      |> Enum.map(fn
+        {version, %{assigns: assigns}} when assigns == %{} ->
+          {version, nil}
+        {version, %{assigns: assigns}} ->
+          {version, (if keys == :all, do: assigns, else: Map.take(assigns, keys))}
+      end)
+      |> Enum.filter(fn({_version, value}) -> value end)
+      |> Map.new
+
+    if Enum.empty?(version_assigns), do: map, else: Map.put(map, :version_assigns, version_assigns)
+  end
 
   @doc ~S"""
   Restore a saved state from a filename, JSON, or a map
@@ -187,30 +197,33 @@ defmodule Trunk.State do
   ```
   """
   @type file_info :: String.t | map
-  @spec restore(file_info) :: Trunk.State.t
-  def restore(file_info)
+  @spec restore(file_info, opts) :: Trunk.State.t
+  def restore(file_info, opts \\ [])
   if Code.ensure_loaded?(Poison) do
-    def restore(<<"{", _rest::binary>> = json) do
+    def restore(<<"{", _rest::binary>> = json, opts) do
       {:ok, map} = Poison.decode(json)
       map
       |> keys_to_atom
-      |> restore
-
+      |> restore(opts)
     end
   end
-  def restore(<<filename::binary>>),
-    do: %__MODULE__{filename: filename}
-  def restore(%{version_assigns: version_assigns} = info) do
+  def restore(<<filename::binary>>, opts),
+    do: restore(%{filename: filename}, opts)
+  def restore(%{} = info, opts) do
+    info = keys_to_atom(info)
     state = struct(__MODULE__, info)
+    version_assigns = info[:version_assigns] || %{}
     versions =
-      version_assigns
-      |> Enum.map(fn({version, assigns}) ->
+      opts
+      |> Keyword.fetch!(:versions)
+      |> Enum.map(fn(version) ->
+        assigns = version_assigns[version] || %{}
         {version, %VersionState{assigns: assigns}}
       end)
       |> Map.new
+
     %{state | versions: versions}
   end
-  def restore(%{} = map), do: map |> keys_to_atom |> restore
 
   defp keys_to_atom(%{} = map) do
     map

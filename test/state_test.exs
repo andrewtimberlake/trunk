@@ -59,6 +59,16 @@ defmodule Trunk.StateTest do
       assert State.save(state, as: :map) == %{filename: "test.jpg", assigns: %{hash: "abcdef"}, version_assigns: %{original: %{hash: "fedcba"}, thumb: %{hash: "abcdfe"}}}
     end
 
+    test "only saves non-empty assigns" do
+      state = %State{filename: "test.jpg", versions: %{original: %VersionState{}, thumb: %VersionState{assigns: %{hash: "abcdfe"}}}}
+      assert State.save(state, as: :map) == %{filename: "test.jpg", version_assigns: %{thumb: %{hash: "abcdfe"}}}
+    end
+
+    test "only saves non-empty version_assigns" do
+      state = %State{filename: "test.jpg", assigns: %{hash: "abcdef"}, versions: %{original: %VersionState{}, thumb: %VersionState{}}}
+      assert State.save(state, as: :map) == %{filename: "test.jpg", assigns: %{hash: "abcdef"}}
+    end
+
     test "saves a full hash with only required assigns" do
       state = %State{filename: "test.jpg", assigns: %{hash: "abcdef", file_size: 1234}, versions: %{original: %VersionState{assigns: %{hash: "fedcba", file_size: 1234}}, thumb: %VersionState{assigns: %{hash: "abcdfe", file_size: 123}}}}
       assert State.save(state, as: :map, assigns: [:hash]) == %{filename: "test.jpg", assigns: %{hash: "abcdef"}, version_assigns: %{original: %{hash: "fedcba"}, thumb: %{hash: "abcdfe"}}}
@@ -72,7 +82,7 @@ defmodule Trunk.StateTest do
 
   describe "restore/2" do
     test "restores from a filename" do
-      assert %State{filename: "my_file.ext"} = State.restore("my_file.ext")
+      assert %State{filename: "my_file.ext"} = State.restore("my_file.ext", versions: [:original])
     end
 
     test "restores from a map" do
@@ -83,7 +93,26 @@ defmodule Trunk.StateTest do
         State.restore(%{filename: "my_file.ext", assigns: %{hash: "abcdef"},
                         version_assigns: %{
                            original: %{hash: "fedcba"},
-                           thumb: %{hash: "abcdfe"}}})
+                           thumb: %{hash: "abcdfe"}}}, versions: [:original, :thumb])
+    end
+
+    test "restores from a map to only specified versions" do
+      assert %State{filename: "my_file.ext",
+                    assigns: %{hash: "abcdef"},
+                    versions: %{thumb: %VersionState{assigns: %{hash: "abcdfe"}}}} ==
+        State.restore(%{filename: "my_file.ext", assigns: %{hash: "abcdef"},
+                        version_assigns: %{
+                           original: %{hash: "fedcba"},
+                           thumb: %{hash: "abcdfe"}}}, versions: [:thumb])
+    end
+
+    test "restores from a map to with extra versions" do
+      assert %State{filename: "my_file.ext",
+                    assigns: %{hash: "abcdef"},
+                    versions: %{thumb: %VersionState{assigns: %{hash: "abcdfe"}},
+                                original: %VersionState{}}} ==
+        State.restore(%{filename: "my_file.ext", assigns: %{hash: "abcdef"},
+                        version_assigns: %{thumb: %{hash: "abcdfe"}}}, versions: [:original, :thumb])
     end
 
     test "restores from a map with string keys" do
@@ -94,7 +123,7 @@ defmodule Trunk.StateTest do
         State.restore(%{"filename" => "my_file.ext", "assigns" => %{"hash" => "abcdef"},
                         "version_assigns" => %{
                           "original" => %{"hash" => "fedcba"},
-                          "thumb" => %{"hash" => "abcdfe"}}})
+                          "thumb" => %{"hash" => "abcdfe"}}}, versions: [:original, :thumb])
     end
 
     test "restores from a json string" do
@@ -103,7 +132,7 @@ defmodule Trunk.StateTest do
                     assigns: %{hash: "abcdef"},
                     versions: %{original: %VersionState{assigns: %{hash: "fedcba"}},
                                 thumb: %VersionState{assigns: %{hash: "abcdfe"}}}} =
-        State.restore(json)
+        State.restore(json, versions: [:original, :thumb])
     end
   end
 end
