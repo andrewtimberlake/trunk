@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(ExAws.S3) do
+if Code.ensure_compiled?(ExAws.S3) do
 defmodule Trunk.Storage.S3 do
   @moduledoc """
   A `Trunk.Storage` implementation for Amazon’s S3 service.

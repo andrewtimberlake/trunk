@@ -147,7 +147,7 @@ defmodule Trunk.State do
     unless Keyword.get(opts, :ignore_assigns, false), do: assert_no_assigns(state)
     filename
   end
-  if Code.ensure_loaded?(Poison),
+  if Code.ensure_compiled?(Poison),
     do: defp save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!
   defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts) do
     assigns_to_save = Keyword.get(opts, :assigns, :all)
@@ -199,7 +199,7 @@ defmodule Trunk.State do
   @type file_info :: String.t | map
   @spec restore(file_info, opts) :: Trunk.State.t
   def restore(file_info, opts \\ [])
-  if Code.ensure_loaded?(Poison) do
+  if Code.ensure_compiled?(Poison) do
     def restore(<<"{", _rest::binary>> = json, opts) do
       {:ok, map} = Poison.decode(json)
       map
