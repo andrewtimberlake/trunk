@@ -10,7 +10,7 @@ Add `trunk` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:trunk, "~> 0.0.4"},
+    {:trunk, "~> 0.0.5"},
 
     # If you want to use Amazon S3, then add:
     {:ex_aws,    "~> 1.1"},
