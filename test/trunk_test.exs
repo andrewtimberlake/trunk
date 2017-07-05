@@ -369,6 +369,10 @@ defmodule TrunkTest do
       assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/42/coffee.jpg"
     end
 
+    test "with a map, a scope, and version" do
+      assert TestTrunk.url(%{filename: "coffee.jpg"}, %{id: 42}, :original) == "42/coffee.jpg"
+    end
+
     test "with just a filename, a version, and options" do
       assert TestTrunk.url("coffee.jpg", :thumb, storage_opts: [base_uri: "http://example.com"]) == "http://example.com/coffee_thumb.jpg"
     end

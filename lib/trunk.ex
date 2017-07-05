@@ -161,6 +161,8 @@ defmodule Trunk do
 
       def url(file_info, version, [_ | _] = opts) when is_atom(version),
         do: url(file_info, nil, version, opts)
+      def url(file_info, scope, version) when is_atom(version),
+        do: url(file_info, scope, version, [])
       def url(file_info, scope, [_ | _] = opts),
         do: url(file_info, scope, :original, opts)
 
