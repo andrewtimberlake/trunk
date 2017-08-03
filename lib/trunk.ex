@@ -166,6 +166,7 @@ defmodule Trunk do
       def url(file_info, scope, [_ | _] = opts),
         do: url(file_info, scope, :original, opts)
 
+      def url(nil, _scope, _version, _opts), do: nil
       def url(<<filename::binary>>, scope, version, opts),
         do: url(%{filename: filename}, scope, version, opts)
       def url(%{} = file_info, scope, version, opts) do
