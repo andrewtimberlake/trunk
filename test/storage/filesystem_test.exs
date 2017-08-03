@@ -36,6 +36,18 @@ defmodule Trunk.Storage.FilesystemTest do
     end
   end
 
+  describe "retrieve/4" do
+    test "successfully retrieving a file", %{output_path: output_path, fixtures_path: fixtures_path} do
+      refute File.exists?(Path.join(output_path, "coffee.jpg"))
+      assert :ok = Filesystem.retrieve("", "coffee.jpg", Path.join(output_path, "coffee.jpg"), path: fixtures_path)
+      assert File.exists?(Path.join(output_path, "coffee.jpg"))
+    end
+
+    test "error retrieving a file", %{output_path: output_path, fixtures_path: fixtures_path} do
+      assert {:error, :enoent} = Filesystem.retrieve("", "wrong.jpg", Path.join(output_path, "coffee.jpg"), path: fixtures_path)
+    end
+  end
+
   describe "delete/3" do
     test "successfully save a file", %{output_path: output_path, fixtures_path: fixtures_path} do
       assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path)

@@ -26,6 +26,16 @@ defmodule Trunk.Processor do
     end
   end
 
+  def retrieve(%{versions: versions, storage: storage, storage_opts: storage_opts} = state, version) do
+    map = versions[version]
+    with {:ok, map} <- get_version_storage_dir(map, version, state),
+         {:ok, %{filename: filename, storage_dir: storage_dir}} <- get_version_filename(map, version, state),
+         {:ok, temp_path} <- Briefly.create(extname: Path.extname(filename)),
+           :ok <- storage.retrieve(storage_dir, filename, temp_path, storage_opts) do
+      {:ok, temp_path}
+    end
+  end
+
   def delete(%{async: true} = state) do
     process_async(state, fn(version, map, state) ->
       with {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
@@ -95,7 +105,7 @@ defmodule Trunk.Processor do
             {{version, map}, State.put_error(state, version, stage, reason)}
         end
       end)
-    ok(%{state | versions: versions})
+    ok(%{state | versions: Map.new(versions)})
   end
 
   def generate_url(%{versions: versions, storage: storage, storage_opts: storage_opts} = state, version) do

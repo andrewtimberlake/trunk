@@ -43,6 +43,12 @@ defmodule Trunk.Storage.Filesystem do
   defp parse_acl(mode) when is_number(mode), do: mode
   defp parse_acl(mode) when is_atom(mode), do: nil
 
+  def retrieve(directory, filename, destination_path, opts \\ []) do
+    base_directory = Keyword.fetch!(opts, :path)
+    file_path = base_directory |> Path.join(directory)
+    File.cp(Path.join(file_path, filename), destination_path)
+  end
+
   @doc ~S"""
   Deletes the file from the file system.
 

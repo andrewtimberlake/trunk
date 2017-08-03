@@ -133,6 +133,33 @@ defmodule Trunk do
         end
       end
 
+      # def retrieve(file_info, scope \\ nil, version \\ :original, opts \\ [])
+      def retrieve(file_info),
+        do: retrieve(file_info, nil, :original, [])
+
+      def retrieve(file_info, [_ | _] = opts),
+        do: retrieve(file_info, nil, :original, opts)
+      def retrieve(file_info, version) when is_atom(version),
+        do: retrieve(file_info, nil, version, [])
+      def retrieve(file_info, scope),
+        do: retrieve(file_info, scope, :original, [])
+
+      def retrieve(file_info, version, [_ | _] = opts) when is_atom(version),
+        do: retrieve(file_info, nil, version, opts)
+      def retrieve(file_info, scope, version) when is_atom(version),
+        do: retrieve(file_info, scope, version, [])
+      def retrieve(file_info, scope, [_ | _] = opts),
+        do: retrieve(file_info, scope, :original, opts)
+
+      def retrieve(nil, _scope, _version, _opts), do: nil
+      def retrieve(<<filename::binary>>, scope, version, opts),
+        do: retrieve(%{filename: filename}, scope, version, opts)
+      def retrieve(%{} = file_info, scope, version, opts) do
+        opts = Trunk.Options.parse(unquote(module_opts), opts)
+        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
+        Trunk.Processor.retrieve(state, version)
+      end
+
       def delete(file_info, opts \\ [])
 
       def delete(file_info, [_ | _] = opts),

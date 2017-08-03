@@ -42,6 +42,21 @@ defmodule Trunk.Storage.S3 do
     |> ExAws.request(ex_aws_opts)
   end
 
+  def retrieve(directory, filename, destination_path, opts \\ []) do
+    key = directory |> Path.join(filename)
+    bucket = Keyword.fetch!(opts, :bucket)
+    ex_aws_opts = Keyword.get(opts, :ex_aws, [])
+
+    {:ok, %{body: data}} = get_object(bucket, key, ex_aws_opts)
+    File.write(destination_path, data, [:binary, :write])
+  end
+
+  defp get_object(bucket, key, ex_aws_opts) do
+    bucket
+    |> ExAws.S3.get_object(key)
+    |> ExAws.request(ex_aws_opts)
+  end
+
   @doc ~S"""
   Deletes the file from Amazon S3.
 

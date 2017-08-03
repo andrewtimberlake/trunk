@@ -73,6 +73,21 @@ defmodule Trunk.Storage.S3Test do
     end
   end
 
+  describe "retrieve/4" do
+    @tag :s3
+    test "successfully save a file", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+      source_path = Path.join(fixtures_path, "coffee.jpg")
+      dir = "dir/#{:rand.uniform(123)}"
+      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, s3_opts)
+      assert file_saved?("#{dir}/new-coffee.jpg", s3_opts)
+
+      {:ok, output_path} = Briefly.create(extname: ".jpg")
+      assert :ok = S3.retrieve(dir, "new-coffee.jpg", output_path, s3_opts)
+
+      assert File.read!(output_path) == File.read!(source_path)
+    end
+  end
+
   describe "delete/3" do
     @tag :s3
     test "successfully remove a file", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do

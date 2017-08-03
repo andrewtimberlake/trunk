@@ -20,6 +20,8 @@ defmodule Trunk.Storage do
   """
   @callback save(directory :: String.t, filenae :: String.t, source_path :: String.t, opts) :: :ok | {:error, any}
 
+  @callback retrieve(directory :: String.t, filenae :: String.t, destination_path :: String.t, opts) :: :ok | {:error, any}
+
   @doc ~S"""
   Deletes the version file from the storage system at path `Path.join(directory, filename)`
 
