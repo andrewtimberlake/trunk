@@ -1,4 +1,3 @@
-if Code.ensure_compiled?(ExAws.S3) do
 defmodule Trunk.Storage.S3 do
   @moduledoc """
   A `Trunk.Storage` implementation for Amazon’s S3 service.
@@ -108,5 +107,4 @@ defmodule Trunk.Storage.S3 do
       %{uri | query: nil} |> URI.to_string
     end
   end
-end
 end
