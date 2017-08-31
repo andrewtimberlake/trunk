@@ -3,8 +3,13 @@ defmodule Trunk.Processor do
 
   alias Trunk.State
 
-  def store(%{async: true} = state) do
-    process_async(state, fn(version, map, state) ->
+  def store(%{versions: versions, async: true} = state),
+    do: store_async(versions, state)
+  def store(%{versions: versions, async: false} = state),
+    do: store_sync(versions, state)
+
+  defp store_async(versions, state) do
+    process_async(versions, state, fn(version, map, state) ->
       with {:ok, map} <- get_version_transform(map, version, state),
            {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
            {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
@@ -15,14 +20,16 @@ defmodule Trunk.Processor do
       end
     end)
   end
-  def store(%{async: false} = state) do
-    with {:ok, state} <- map_versions(state, &get_version_transform/3),
-         {:ok, state} <- map_versions(state, &transform_version/3),
-         {:ok, state} <- map_versions(state, &postprocess_version/3),
-         {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
-         {:ok, state} <- map_versions(state, &get_version_filename/3),
-         {:ok, state} <- map_versions(state, &get_version_storage_opts/3) do
-       map_versions(state, &save_version/3)
+
+  def store_sync(versions, %{versions: state_versions} = state) do
+    with {:ok, versions, state} <- map_versions(versions, state, &get_version_transform/3),
+         {:ok, versions, state} <- map_versions(versions, state, &transform_version/3),
+         {:ok, versions, state} <- map_versions(versions, state, &postprocess_version/3),
+         {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_dir/3),
+         {:ok, versions, state} <- map_versions(versions, state, &get_version_filename/3),
+         {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_opts/3),
+         {:ok, versions, state} <- map_versions(versions, state, &save_version/3) do
+      {:ok, %{state | versions: Map.merge(state_versions, Map.new(versions))}}
     end
   end
 
@@ -36,22 +43,24 @@ defmodule Trunk.Processor do
     end
   end
 
-  def delete(%{async: true} = state) do
-    process_async(state, fn(version, map, state) ->
+  def delete(%{versions: versions, async: true} = state) do
+    process_async(versions, state, fn(version, map, state) ->
       with {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
       {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)) do
         delete_version(map, version, update_state(state, version, map))
       end
     end)
   end
-  def delete(%{async: false} = state) do
-    with {:ok, state} <- map_versions(state, &get_version_storage_dir/3),
-         {:ok, state} <- map_versions(state, &get_version_filename/3) do
-      map_versions(state, &delete_version/3)
+  def delete(%{versions: versions, async: false} = state) do
+    state_versions = versions
+    with {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_dir/3),
+         {:ok, versions, state} <- map_versions(versions, state, &get_version_filename/3),
+         {:ok, versions, state} <- map_versions(versions, state, &delete_version/3) do
+      {:ok, %{state | versions: Map.merge(state_versions, Map.new(versions))}}
     end
   end
 
-  def process_async(%{versions: versions, version_timeout: version_timeout} = state, func) do
+  def process_async(versions, %{version_timeout: version_timeout} = state, func) do
     tasks =
       versions
       |> Enum.map(fn({version, map}) ->
@@ -94,7 +103,7 @@ defmodule Trunk.Processor do
   defp update_state(%{versions: versions} = state, version, version_map),
     do: %{state | versions: Map.put(versions, version, version_map)}
 
-  defp map_versions(%{versions: versions} = state, func) do
+  defp map_versions(versions, state, func) do
     {versions, state} =
       versions
       |> Enum.map_reduce(state, fn({version, map}, state) ->
@@ -105,7 +114,7 @@ defmodule Trunk.Processor do
             {{version, map}, State.put_error(state, version, stage, reason)}
         end
       end)
-    ok(%{state | versions: Map.new(versions)})
+    ok(versions, %{state | versions: Map.new(versions)})
   end
 
   def generate_url(%{versions: versions, storage: storage, storage_opts: storage_opts} = state, version) do
@@ -211,4 +220,7 @@ defmodule Trunk.Processor do
   defp ok(%State{errors: nil} = state), do: {:ok, state}
   defp ok(%State{} = state), do: {:error, state}
   defp ok(other), do: {:ok, other}
+
+  defp ok(versions, %State{errors: nil} = state), do: {:ok, versions, state}
+  defp ok(_versions, %State{} = state), do: {:error, state}
 end
