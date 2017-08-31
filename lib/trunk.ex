@@ -109,7 +109,17 @@ defmodule Trunk do
       require Trunk
       import Trunk, only: [validate_file_extensions: 1]
 
-      def store(file, scope \\ nil, opts \\ [])
+      @impl true
+      def store(file),
+        do: store(file, nil, [])
+
+      @impl true
+      def store(file, [_ | _] = opts),
+        do: store(file, nil, opts)
+      def store(file, scope),
+        do: store(file, scope, [])
+
+      @impl true
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)
       def store(<<"http", _rest::binary>> = url, scope, opts) do
@@ -124,6 +134,8 @@ defmodule Trunk do
         File.write(path, binary, [:write, :binary])
         store(%{filename: filename, path: path}, scope, opts)
       end
+
+      @impl true
       def store(%{filename: filename, path: path}, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
@@ -134,9 +146,11 @@ defmodule Trunk do
       end
 
       # def retrieve(file_info, scope \\ nil, version \\ :original, opts \\ [])
+      @impl true
       def retrieve(file_info),
         do: retrieve(file_info, nil, :original, [])
 
+      @impl true
       def retrieve(file_info, [_ | _] = opts),
         do: retrieve(file_info, nil, :original, opts)
       def retrieve(file_info, version) when is_atom(version),
@@ -144,6 +158,7 @@ defmodule Trunk do
       def retrieve(file_info, scope),
         do: retrieve(file_info, scope, :original, [])
 
+      @impl true
       def retrieve(file_info, version, [_ | _] = opts) when is_atom(version),
         do: retrieve(file_info, nil, version, opts)
       def retrieve(file_info, scope, version) when is_atom(version),
@@ -151,6 +166,7 @@ defmodule Trunk do
       def retrieve(file_info, scope, [_ | _] = opts),
         do: retrieve(file_info, scope, :original, opts)
 
+      @impl true
       def retrieve(nil, _scope, _version, _opts), do: nil
       def retrieve(<<filename::binary>>, scope, version, opts),
         do: retrieve(%{filename: filename}, scope, version, opts)
@@ -160,13 +176,17 @@ defmodule Trunk do
         Trunk.Processor.retrieve(state, version)
       end
 
-      def delete(file_info, opts \\ [])
+      @impl true
+      def delete(file_info),
+        do: delete(file_info, [])
 
+      @impl true
       def delete(file_info, [_ | _] = opts),
         do: delete(file_info, nil, opts)
       def delete(file_info, scope),
         do: delete(file_info, scope, [])
 
+      @impl true
       def delete(<<filename::binary>>, scope, opts),
         do: delete(%{filename: filename}, scope, opts)
       def delete(file_info, scope, opts) do
@@ -176,9 +196,11 @@ defmodule Trunk do
       end
 
       # def url(file_info, scope \\ nil, version \\ :original, opts \\ [])
+      @impl true
       def url(file_info),
         do: url(file_info, nil, :original, [])
 
+      @impl true
       def url(file_info, [_ | _] = opts),
         do: url(file_info, nil, :original, opts)
       def url(file_info, version) when is_atom(version),
@@ -186,6 +208,7 @@ defmodule Trunk do
       def url(file_info, scope),
         do: url(file_info, scope, :original, [])
 
+      @impl true
       def url(file_info, version, [_ | _] = opts) when is_atom(version),
         do: url(file_info, nil, version, opts)
       def url(file_info, scope, version) when is_atom(version),
@@ -193,6 +216,7 @@ defmodule Trunk do
       def url(file_info, scope, [_ | _] = opts),
         do: url(file_info, scope, :original, opts)
 
+      @impl true
       def url(nil, _scope, _version, _opts), do: nil
       def url(<<filename::binary>>, scope, version, opts),
         do: url(%{filename: filename}, scope, version, opts)
@@ -204,18 +228,24 @@ defmodule Trunk do
       end
 
       # Default implementations of callback functions
+      @impl true
       def preprocess(state), do: {:ok, state}
 
+      @impl true
       def postprocess(version_state, _version, _state), do: {:ok, version_state}
 
+      @impl true
       def transform(_state, _version), do: nil
 
+      @impl true
       def storage_dir(_state, _version), do: ""
 
+      @impl true
       def filename(%{filename: filename}, :original), do: filename
       def filename(%{rootname: rootname, extname: extname}, version),
         do: "#{rootname}_#{version}#{extname}"
 
+      @impl true
       def storage_opts(_state, _version), do: []
 
       defoverridable preprocess: 1, postprocess: 3, transform: 2, filename: 2, storage_dir: 2, storage_opts: 2
@@ -237,6 +267,7 @@ defmodule Trunk do
   defmacro validate_file_extensions(extensions) do
     lower_extensions = Enum.map(Macro.expand(extensions, __CALLER__), &String.downcase/1)
     quote do
+      @impl true
       def preprocess(%{lower_extname: extname} = state) do
         if extname in unquote(lower_extensions) do
           {:ok, state}

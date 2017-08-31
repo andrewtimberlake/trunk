@@ -8,6 +8,7 @@ defmodule TrunkTest do
                storage: Trunk.Storage.Filesystem,
                storage_opts: [path: unquote(output_path)]
 
+    @impl true
     def preprocess(%Trunk.State{lower_extname: extname} = state) do
       if extname in [".png", ".jpg", ".jpeg"] do
         {:ok, state}
@@ -16,13 +17,16 @@ defmodule TrunkTest do
       end
     end
 
+    @impl true
     def storage_opts(%Trunk.State{}, _version), do: [acl: "0600"]
 
+    @impl true
     def storage_dir(%Trunk.State{scope: %{id: id}}, _version),
       do: "#{id}"
     def storage_dir(_state, _version),
       do: ""
 
+    @impl true
     def filename(%Trunk.State{rootname: rootname, extname: extname}, :thumb),
       do: rootname <> "_thumb" <> extname
     def filename(%Trunk.State{rootname: rootname}, :png_thumb),
@@ -31,6 +35,7 @@ defmodule TrunkTest do
       do: rootname <> ".pdf"
     def filename(junk, version), do: super(junk, version)
 
+    @impl true
     def transform(_, :thumb),
       do: {:convert, "-strip -thumbnail 100x100>"}
     def transform(_, :png_thumb),
@@ -48,11 +53,13 @@ defmodule TrunkTest do
                storage: Trunk.Storage.Filesystem,
                storage_opts: [path: unquote(output_path)]
 
+    @impl true
     def preprocess(%Trunk.State{path: path} = state) do
       hash = :crypto.hash(:md5, File.read!(path)) |> Base.encode16(case: :lower)
       {:ok, %{state | assigns: Map.put(state.assigns, :hash, hash)}}
     end
 
+    @impl true
     def postprocess(%Trunk.VersionState{} = version_state, :original, _state),
       do: {:ok, version_state}
     def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, _state) do
@@ -60,11 +67,13 @@ defmodule TrunkTest do
       {:ok, Trunk.VersionState.assign(version_state, :hash, hash)}
     end
 
+    @impl true
     def storage_dir(%Trunk.State{assigns: %{hash: hash}}, :original),
       do: "#{hash}"
     def storage_dir(%Trunk.State{assigns: %{hash: hash}} = state, version),
       do: "#{hash}/#{Trunk.State.get_version_assign(state, version, :hash)}"
 
+    @impl true
     def transform(_, :thumb),
       do: {:convert, "-strip -thumbnail 100x100>"}
     def transform(junk, version), do: super(junk, version)
@@ -237,6 +246,7 @@ defmodule TrunkTest do
                  storage: Trunk.Storage.Filesystem,
                  storage_opts: [path: unquote(output_path)]
 
+      @impl true
       def storage_dir(%{scope: %{id: model_id}, opts: opts}, _version),
         do: "#{model_id}/#{Keyword.fetch!(opts, :field)}"
     end

@@ -6,11 +6,13 @@ defmodule Trunk.TransformationTest do
                async: false,
                storage: Trunk.Storage.Filesystem
 
+    @impl true
     def filename(_state, :thumbnails),
       do: "thumbnail.jpg"
     def filename(%{extname: extname}, version),
       do: "#{version}#{extname}"
 
+    @impl true
     def transform(_state, :original), do: nil
     def transform(_state, :thumbnails),
       do: fn(source_file) ->

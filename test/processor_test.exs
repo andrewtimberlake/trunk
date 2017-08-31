@@ -7,6 +7,7 @@ defmodule Trunk.ProcessorTest do
     defmodule TestTrunk do
       use Trunk, versions: []
 
+      @impl true
       def transform(_state, :timeout_version),
         do: fn(_) -> Process.sleep(2_000) end
     end
