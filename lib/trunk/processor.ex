@@ -43,6 +43,19 @@ defmodule Trunk.Processor do
     end
   end
 
+  def reprocess(_state, :original), do: {:error, "Cannot reprocess :original"}
+  def reprocess(%{versions: versions} = state, version) do
+    versions =
+      version
+      |> List.wrap
+      |> Enum.map(fn(version) ->
+        {version, versions[version]}
+      end)
+      |> Map.new
+
+    store_async(versions, state)
+  end
+
   def delete(%{versions: versions, async: true} = state) do
     process_async(versions, state, fn(version, map, state) ->
       with {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),

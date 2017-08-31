@@ -176,6 +176,54 @@ defmodule Trunk do
         Trunk.Processor.retrieve(state, version)
       end
 
+      # def reprocess(file_info, scope \\ nil, versions \\ :all, opts \\ [])
+      # @impl true
+      def reprocess(file_info),
+        do: reprocess(file_info, nil, :all, [])
+
+      # @impl true
+      def reprocess(file_info, [_ | _] = opts_or_versions) do
+        if Keyword.keyword?(opts_or_versions) do
+          reprocess(file_info, nil, :all, opts_or_versions)
+        else
+          reprocess(file_info, nil, opts_or_versions, [])
+        end
+      end
+      def reprocess(file_info, version) when is_atom(version),
+        do: reprocess(file_info, nil, version, [])
+      def reprocess(file_info, scope),
+        do: reprocess(file_info, scope, :all, [])
+
+      # @impl true
+      def reprocess(file_info, [_ | _] = versions, [_ | _] = opts),
+        do: reprocess(file_info, nil, versions, opts)
+      def reprocess(file_info, versions, [_ | _] = opts) when is_atom(versions),
+        do: reprocess(file_info, nil, versions, opts)
+      def reprocess(file_info, scope, versions) when is_atom(versions),
+        do: reprocess(file_info, scope, versions, [])
+      def reprocess(file_info, scope, [_ | _] = opts_or_versions) do
+        if Keyword.keyword?(opts_or_versions) do
+          reprocess(file_info, scope, :all, opts_or_versions)
+        else
+          reprocess(file_info, scope, opts_or_versions, [])
+        end
+      end
+
+      # @impl true
+      def reprocess(nil, _scope, _versions, _opts), do: nil
+      def reprocess(<<filename::binary>>, scope, versions, opts),
+        do: reprocess(%{filename: filename}, scope, versions, opts)
+      def reprocess(%{} = file_info, scope, versions, opts) do
+        opts = Trunk.Options.parse(unquote(module_opts), opts)
+
+        with state <- State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts),
+             {:ok, path} <- Trunk.Processor.retrieve(state, :original),
+             {:ok, state} <- __MODULE__.preprocess(%{state | path: path}) do
+          versions = if versions == :all, do: List.delete(opts[:versions], :original), else: versions
+          Trunk.Processor.reprocess(state, versions)
+        end
+      end
+
       @impl true
       def delete(file_info),
         do: delete(file_info, [])

@@ -159,6 +159,7 @@ defmodule TrunkTest do
       test "post processing async:#{async}", %{output_path: output_path} do
         original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
         {:ok, %Trunk.State{assigns: %{hash: hash}, versions: versions}} = Md5Trunk.store(original_file, async: unquote(async))
+
         %{assigns: %{hash: version_hash}} = versions[:thumb]
 
         assert geometry(original_file) == geometry(Path.join(output_path, "/#{hash}/coffee.jpg"))
@@ -282,6 +283,90 @@ defmodule TrunkTest do
       {:ok, retrieved_path} = TestTrunk.retrieve(filename, :thumb)
       assert File.read!(Path.join(output_path, "coffee_thumb.jpg")) == File.read!(retrieved_path)
     end
+  end
+
+  describe "reprocess/?" do
+    Enum.each([true, false], fn(async) ->
+      test "it reprocesses the file from the original in storage async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{} = state} = TestTrunk.store(original_file, versions: [:original, :thumb], async: unquote(async))
+        assert File.exists?(Path.join(output_path, "coffee.jpg"))
+        assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
+
+        assert :ok = File.rm(Path.join(output_path, "coffee_thumb.jpg"))
+
+        saved_state = Trunk.State.save(state, as: :map)
+        {:ok, state} = TestTrunk.reprocess(saved_state, :thumb, async: unquote(async))
+        assert Trunk.State.save(state, as: :map) == saved_state
+        assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
+      end
+
+      test "it doesn't change other version files async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{} = state} = TestTrunk.store(original_file, versions: [:original, :thumb, :png_thumb], async: unquote(async))
+        %{mtime: original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        Process.sleep 1_000     # Must sleep for 1 second to make sure the modified time changes
+
+        saved_state = Trunk.State.save(state, as: :map)
+        {:ok, state} = TestTrunk.reprocess(saved_state, :thumb, async: unquote(async))
+        assert Trunk.State.save(state, as: :map) == saved_state
+
+        %{mtime: new_original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: new_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: new_png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        assert new_original_modified == original_modified
+        refute new_thumb_modified == thumb_modified
+        assert new_png_thumb_modified == png_thumb_modified
+      end
+
+      test "it can change more than one version files async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{} = state} = TestTrunk.store(original_file, versions: [:original, :thumb, :png_thumb], async: unquote(async))
+        %{mtime: original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        Process.sleep 1_000     # Must sleep for 1 second to make sure the modified time changes
+
+        saved_state = Trunk.State.save(state, as: :map)
+        {:ok, state} = TestTrunk.reprocess(saved_state, [:thumb, :png_thumb], async: unquote(async))
+        assert Trunk.State.save(state, as: :map) == saved_state
+
+        %{mtime: new_original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: new_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: new_png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        assert new_original_modified == original_modified
+        refute new_thumb_modified == thumb_modified
+        refute new_png_thumb_modified == png_thumb_modified
+      end
+
+      test "it can change all versions (except original) async:#{async}", %{output_path: output_path} do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+        {:ok, %Trunk.State{} = state} = TestTrunk.store(original_file, versions: [:original, :thumb, :png_thumb], async: unquote(async))
+        %{mtime: original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        Process.sleep 1_000     # Must sleep for 1 second to make sure the modified time changes
+
+        saved_state = Trunk.State.save(state, as: :map)
+        {:ok, state} = TestTrunk.reprocess(saved_state, async: unquote(async))
+        assert Trunk.State.save(state, as: :map) == saved_state
+
+        %{mtime: new_original_modified} = File.stat!(Path.join(output_path, "coffee.jpg"))
+        %{mtime: new_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.jpg"))
+        %{mtime: new_png_thumb_modified} = File.stat!(Path.join(output_path, "coffee_thumb.png"))
+
+        assert new_original_modified == original_modified
+        refute new_thumb_modified == thumb_modified
+        refute new_png_thumb_modified == png_thumb_modified
+      end
+    end)
   end
 
   describe "delete/1" do
