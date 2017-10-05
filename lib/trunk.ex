@@ -122,10 +122,12 @@ defmodule Trunk do
       @impl true
       def store(file, [_ | _] = opts, []),
         do: store(file, nil, opts)
+      if Code.ensure_compiled?(:hackney) do
       def store(<<"http", _rest::binary>> = url, scope, opts) do
         filename = Path.basename(url)
         {:ok, 200, _headers, body} = :hackney.get(url, [], [], [with_body: true])
         store(%{filename: filename, binary: body}, scope, opts)
+      end
       end
       def store(file, scope, opts) when is_binary(file),
         do: store(%{filename: Path.basename(file), path: file}, scope, opts)
