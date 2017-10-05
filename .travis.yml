@@ -1,4 +1,9 @@
 language: elixir
+addons:
+  apt:
+    packages:
+    - imagemagick
+    - ghostscript
 matrix:
   include:
     - elixir: 1.4.0
