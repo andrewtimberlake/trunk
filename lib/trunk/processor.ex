@@ -21,15 +21,21 @@ defmodule Trunk.Processor do
     end)
   end
 
-  def store_sync(versions, %{versions: state_versions} = state) do
-    with {:ok, versions, state} <- map_versions(versions, state, &get_version_transform/3),
-         {:ok, versions, state} <- map_versions(versions, state, &transform_version/3),
-         {:ok, versions, state} <- map_versions(versions, state, &postprocess_version/3),
-         {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_dir/3),
-         {:ok, versions, state} <- map_versions(versions, state, &get_version_filename/3),
-         {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_opts/3),
-         {:ok, versions, state} <- map_versions(versions, state, &save_version/3) do
-      {:ok, %{state | versions: Map.merge(state_versions, Map.new(versions))}}
+  def store_sync(versions, %{versions: state_versions, timeout: timeout} = state) do
+    task = Task.async(fn ->
+      with {:ok, versions, state} <- map_versions(versions, state, &get_version_transform/3),
+           {:ok, versions, state} <- map_versions(versions, state, &transform_version/3),
+           {:ok, versions, state} <- map_versions(versions, state, &postprocess_version/3),
+           {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_dir/3),
+           {:ok, versions, state} <- map_versions(versions, state, &get_version_filename/3),
+           {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_opts/3),
+           {:ok, versions, state} <- map_versions(versions, state, &save_version/3) do
+        {:ok, %{state | versions: Map.merge(state_versions, Map.new(versions))}}
+      end
+    end)
+    case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> result
+      nil -> {:error, %{state | errors: :timeout}}
     end
   end
 
@@ -73,7 +79,7 @@ defmodule Trunk.Processor do
     end
   end
 
-  def process_async(versions, %{version_timeout: version_timeout} = state, func) do
+  def process_async(versions, %{timeout: timeout} = state, func) do
     tasks =
       versions
       |> Enum.map(fn({version, map}) ->
@@ -84,7 +90,7 @@ defmodule Trunk.Processor do
     task_list = Enum.map(tasks, fn({_version, task}) -> task end)
 
     task_list
-    |> Task.yield_many(version_timeout)
+    |> Task.yield_many(timeout)
     |> Enum.map(fn({task, result}) ->
       {task, result || Task.shutdown(task, :brutal_kill)}
     end)

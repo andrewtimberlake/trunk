@@ -22,7 +22,7 @@ defmodule Trunk do
   ### Available options
   - `:versions` a list of versions as atoms, `[:original, :thumb]`
   - `:async` (boolean) default `true`, whether to process each version in parallel or in sequence.
-  - `:version_timeout` default `5_000`, how long to wait for each versions transformation and storage to complete when processing in parallel. **Note: ** if storing files non-locally (i.e. Amazon S3), then include both expected time for transformation and expected time for storage in this timeout.
+  - `:timeout` default `5_000`, how long to wait for each versions transformation and storage to complete when processing in parallel. **Note: ** if storing files non-locally (i.e. Amazon S3), then include both expected time for transformation and expected time for storage in this timeout.
   - `:storage` default `Trunk.Storage.Filesystem`, the storage module to use when storing files and versions
   - `:storage_opts` default: `[path: ""]`, the options for the storage module. See each storage module's documentation for available options.
   - `:otp_app`, only used at module level to read options specific to the otp app.

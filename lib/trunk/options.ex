@@ -5,18 +5,29 @@ defmodule Trunk.Options do
     defaults = [
       versions: [:original],
       async: true,
-      version_timeout: 5_000,
+      timeout: 5_000,
       storage: Trunk.Storage.Filesystem,
       storage_opts: [path: ""],
     ]
 
     defaults
     |> Keyword.merge(Application.get_all_env(:trunk), &merge_values/3)
-    |> filter_options
+    |> filter_options           # Application.get_all_env will return every config for the :trunk app
+                                #  so we filter it for only the ones we need.
     |> merge_otp_app_opts(module_opts)
     |> Keyword.merge(module_opts, &merge_values/3)
     |> Keyword.merge(method_opts, &merge_values/3)
+    |> process_deprecations
   end
+
+  defp process_deprecations(keyword_lsit, acc \\ [])
+  defp process_deprecations([], acc), do: acc
+  defp process_deprecations([{:version_timeout, value} | tail], acc) do
+    IO.warn("option :version_timeout is deprecated, use :timeout")
+    acc
+  end
+  defp process_deprecations([head | tail], acc),
+    do: process_deprecations(tail, [head | acc])
 
   defp merge_otp_app_opts(opts, module_opts) do
     otp_app = Keyword.get(module_opts, :otp_app, [])
@@ -42,8 +53,10 @@ defmodule Trunk.Options do
     do: filter_options(tail, [{:storage_opts, storage_opts} | acc])
   defp filter_options([{:versions, versions} | tail], acc),
     do: filter_options(tail, [{:versions, versions} | acc])
-  defp filter_options([{:version_timeout, version_timeout} | tail], acc),
-    do: filter_options(tail, [{:version_timeout, version_timeout} | acc])
+  defp filter_options([{:version_timeout, timeout} | tail], acc),
+    do: filter_options(tail, [{:version_timeout, timeout} | acc])
+  defp filter_options([{:timeout, timeout} | tail], acc),
+    do: filter_options(tail, [{:timeout, timeout} | acc])
   defp filter_options([_head | tail], acc),
     do: filter_options(tail, acc)
 end

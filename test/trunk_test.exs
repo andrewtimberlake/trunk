@@ -217,6 +217,63 @@ defmodule TrunkTest do
     end)
   end
 
+  defmodule TimeoutTrunk do
+    output_path = Path.join(__DIR__, "output")
+    use Trunk, versions: [:one, :two, :three],
+               storage: Trunk.Storage.Filesystem,
+               storage_opts: [path: unquote(output_path)]
+
+      @impl true
+      def transform(%{path: path}, :one),
+        do: fn(_) -> Process.sleep(1_000); {:ok, path} end
+      def transform(%{path: path}, :two),
+        do: fn(_) -> Process.sleep(2_000); {:ok, path} end
+      def transform(%{path: path}, :three),
+        do: fn(_) -> Process.sleep(3_000); {:ok, path} end
+  end
+
+  describe "store timeouts" do
+    test "timeout in first transform async:true" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      assert {:error, %Trunk.State{errors: errors}} = TimeoutTrunk.store(original_file,
+        %{id: 42},
+        async: true,
+        versions: [:one, :two, :three],
+        timeout: 500)
+      assert %{one: [processing: :timeout]} = errors
+    end
+
+    test "timeout in second transform async:true" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      assert {:error, %Trunk.State{errors: errors}} = TimeoutTrunk.store(original_file,
+        %{id: 42},
+        async: true,
+        versions: [:one, :two, :three],
+        timeout: 1500)
+      assert %{two: [processing: :timeout]} = errors
+    end
+
+    test "timeout in third transform async:true" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      assert {:error, %Trunk.State{errors: errors}} = TimeoutTrunk.store(original_file,
+        %{id: 42},
+        async: true,
+        versions: [:one, :two, :three],
+        timeout: 1500)
+      assert %{three: [processing: :timeout]} = errors
+    end
+
+    test "timeout in transform async:false" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      assert {:error, %Trunk.State{errors: errors}} = TimeoutTrunk.store(original_file,
+        %{id: 42},
+        async: false,
+        versions: [:one],
+        timeout: 500)
+      assert :timeout = errors
+    end
+  end
+
   describe "validate_file_extensions/1" do
     defmodule ValidateTrunk do
       output_path = Path.join(__DIR__, "output")

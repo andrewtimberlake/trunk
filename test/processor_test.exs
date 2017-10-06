@@ -12,9 +12,14 @@ defmodule Trunk.ProcessorTest do
         do: fn(_) -> Process.sleep(2_000) end
     end
 
-    test "version timeout" do
-      assert {:error, %{errors: errors}} = Processor.store(%State{module: TestTrunk, versions: %{timeout_version: %VersionState{}}, version_timeout: 500})
+    test "version timeout async:true" do
+      assert {:error, %{errors: errors}} = Processor.store(%State{module: TestTrunk, versions: %{timeout_version: %VersionState{}}, async: true, timeout: 500})
       assert %{timeout_version: [processing: :timeout]} = errors
+    end
+
+    test "version timeout async:false" do
+      assert {:error, %{errors: errors}} = Processor.store(%State{module: TestTrunk, versions: %{timeout_version: %VersionState{}}, async: false, timeout: 500})
+      assert :timeout = errors
     end
 
     test "spaces in file names" do

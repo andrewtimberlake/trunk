@@ -12,7 +12,7 @@ defmodule Trunk.State do
   - `versions` - A map of the versions and their respective `Trunk.VersionState` (e.g. `%{original: %Trunk.VersionState{}, thumbnail: %Trunk.VersionState{}}`)
   - `scope` - A user struct/map passed in useful for determining storage locations and file naming.
   - `async` - A boolean indicator of whether processing will be done in parallel.
-  - `version_timeout` - The timeout after which each processing process will be terminated. (Only applies with `async: true`)
+  - `timeout` - The timeout after which each processing process will be terminated. (Only applies with `async: true`)
   - `storage` - The module to use for storage processing. (e.g. `Trunk.Storage.Filesystem` or `Trunk.Storage.S3`)
   - `storage_opts` - A keyword list of options for the `storage` module
   - `errors` - a place to record errors encountered during processing. (`nli` if no errors, otherwise a map of errors)
@@ -31,14 +31,14 @@ defmodule Trunk.State do
             versions: %{},
             scope: %{},
             async: true,
-            version_timeout: 5_000,
+            timeout: 5_000,
             storage: nil,
             storage_opts: [],
             errors: nil,
             opts: [],
             assigns: %{}
   @type opts :: Keyword.t
-  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: map, async: boolean, version_timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
+  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: map, async: boolean, timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
 
   def init(%{} = info, scope, opts) do
     state = restore(info, opts)
@@ -48,7 +48,7 @@ defmodule Trunk.State do
       extname: extname,
       lower_extname: String.downcase(extname),
       rootname: rootname,
-      version_timeout: Keyword.fetch!(opts, :version_timeout),
+      timeout: Keyword.fetch!(opts, :timeout),
       async: Keyword.fetch!(opts, :async),
       storage: Keyword.fetch!(opts, :storage),
       storage_opts: Keyword.fetch!(opts, :storage_opts),
