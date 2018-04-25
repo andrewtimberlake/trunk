@@ -173,10 +173,8 @@ defmodule Trunk.Storage.S3Test do
       s3_opts = Keyword.put(s3_opts, :signed, true)
       url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse()
 
-      assert %URI{
-               host: "s3-eu-west-1.amazonaws.com",
-               path: "/#{@bucket}/trunk/new/dir/new-coffee.jpg"
-             } = url
+      path = "/#{@bucket}/trunk/new/dir/new-coffee.jpg"
+      assert match?(%URI{host: "s3-eu-west-1.amazonaws.com", path: ^path}, url)
 
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
@@ -195,10 +193,8 @@ defmodule Trunk.Storage.S3Test do
       s3_opts = Keyword.put(s3_opts, :signed, true)
       url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse()
 
-      assert %URI{
-               host: "#{@bucket}.s3-eu-west-1.amazonaws.com",
-               path: "/trunk/new/dir/new-coffee.jpg"
-             } = url
+      host = "#{@bucket}.s3-eu-west-1.amazonaws.com"
+      assert match?(%URI{host: ^host, path: "/trunk/new/dir/new-coffee.jpg"}, url)
 
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
