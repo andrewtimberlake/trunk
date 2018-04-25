@@ -22,7 +22,7 @@ defmodule Trunk.Options do
 
   defp process_deprecations(keyword_lsit, acc \\ [])
   defp process_deprecations([], acc), do: acc
-  defp process_deprecations([{:version_timeout, value} | tail], acc) do
+  defp process_deprecations([{:version_timeout, _value} | _tail], acc) do
     IO.warn("option :version_timeout is deprecated, use :timeout")
     acc
   end
