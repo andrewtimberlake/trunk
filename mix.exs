@@ -6,7 +6,7 @@ defmodule Trunk.Mixfile do
   def project do
     [
       app: :trunk,
-      version: "0.0.8",
+      version: "0.0.9",
       elixir: "~> 1.4",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -53,7 +53,6 @@ defmodule Trunk.Mixfile do
     [
       {:briefly, "~> 0.3.0"},
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:ex_aws, "~> 2.0", optional: true},
       {:ex_aws_s3, "~> 2.0", optional: true},
       {:hackney, "~> 1.7", optional: true},
       {:poison, "~> 3.1", optional: true},
