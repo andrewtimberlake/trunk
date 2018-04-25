@@ -2,28 +2,39 @@ defmodule Trunk.TransformationTest do
   use ExUnit.Case, async: true
 
   defmodule MultiPagePdfTrunk do
-    use Trunk, versions: [:original, :thumbnails],
-               async: false,
-               storage: Trunk.Storage.Filesystem
+    use Trunk,
+      versions: [:original, :thumbnails],
+      async: false,
+      storage: Trunk.Storage.Filesystem
 
     @impl true
-    def filename(_state, :thumbnails),
-      do: "thumbnail.jpg"
-    def filename(%{extname: extname}, version),
-      do: "#{version}#{extname}"
+    def filename(_state, :thumbnails), do: "thumbnail.jpg"
+    def filename(%{extname: extname}, version), do: "#{version}#{extname}"
 
     @impl true
     def transform(_state, :original), do: nil
+
     def transform(_state, :thumbnails),
-      do: fn(source_file) ->
-            {:ok, directory} = Briefly.create(directory: true)
-            output_path = Path.join(directory, "out.jpg")
-            case System.cmd("convert", ["-density", "300", source_file, "-strip", "-thumbnail", "600x600>", output_path]) do
-              {_, 0} ->
-                 {:ok, (directory |> Path.join("*") |> Path.wildcard)}
-              {output, _} -> {:error, output}
-            end
-          end
+      do: fn source_file ->
+        {:ok, directory} = Briefly.create(directory: true)
+        output_path = Path.join(directory, "out.jpg")
+
+        case System.cmd("convert", [
+               "-density",
+               "300",
+               source_file,
+               "-strip",
+               "-thumbnail",
+               "600x600>",
+               output_path
+             ]) do
+          {_, 0} ->
+            {:ok, directory |> Path.join("*") |> Path.wildcard()}
+
+          {output, _} ->
+            {:error, output}
+        end
+      end
   end
 
   test "convert multi page PDF" do

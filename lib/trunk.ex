@@ -110,27 +110,26 @@ defmodule Trunk do
       import Trunk, only: [validate_file_extensions: 1]
 
       @impl true
-      def store(file),
-        do: store(file, nil, [])
+      def store(file), do: store(file, nil, [])
 
       @impl true
-      def store(file, [_ | _] = opts),
-        do: store(file, nil, opts)
-      def store(file, scope),
-        do: store(file, scope, [])
+      def store(file, [_ | _] = opts), do: store(file, nil, opts)
+      def store(file, scope), do: store(file, scope, [])
 
       @impl true
-      def store(file, [_ | _] = opts, []),
-        do: store(file, nil, opts)
+      def store(file, [_ | _] = opts, []), do: store(file, nil, opts)
+
       if Code.ensure_compiled?(:hackney) do
-      def store(<<"http", _rest::binary>> = url, scope, opts) do
-        filename = Path.basename(url)
-        {:ok, 200, _headers, body} = :hackney.get(url, [], [], [with_body: true])
-        store(%{filename: filename, binary: body}, scope, opts)
+        def store(<<"http", _rest::binary>> = url, scope, opts) do
+          filename = Path.basename(url)
+          {:ok, 200, _headers, body} = :hackney.get(url, [], [], with_body: true)
+          store(%{filename: filename, binary: body}, scope, opts)
+        end
       end
-      end
+
       def store(file, scope, opts) when is_binary(file),
         do: store(%{filename: Path.basename(file), path: file}, scope, opts)
+
       def store(%{filename: filename, binary: binary}, scope, opts) do
         {:ok, path} = Briefly.create(extname: Path.extname(filename))
         File.write(path, binary, [:write, :binary])
@@ -141,7 +140,8 @@ defmodule Trunk do
       def store(%{filename: filename, path: path}, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
-        with state <- State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts),
+        with state <-
+               State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts),
              {:ok, state} <- __MODULE__.preprocess(state) do
           Trunk.Processor.store(state)
         end
@@ -149,29 +149,32 @@ defmodule Trunk do
 
       # def retrieve(file_info, scope \\ nil, version \\ :original, opts \\ [])
       @impl true
-      def retrieve(file_info),
-        do: retrieve(file_info, nil, :original, [])
+      def retrieve(file_info), do: retrieve(file_info, nil, :original, [])
 
       @impl true
-      def retrieve(file_info, [_ | _] = opts),
-        do: retrieve(file_info, nil, :original, opts)
+      def retrieve(file_info, [_ | _] = opts), do: retrieve(file_info, nil, :original, opts)
+
       def retrieve(file_info, version) when is_atom(version),
         do: retrieve(file_info, nil, version, [])
-      def retrieve(file_info, scope),
-        do: retrieve(file_info, scope, :original, [])
+
+      def retrieve(file_info, scope), do: retrieve(file_info, scope, :original, [])
 
       @impl true
       def retrieve(file_info, version, [_ | _] = opts) when is_atom(version),
         do: retrieve(file_info, nil, version, opts)
+
       def retrieve(file_info, scope, version) when is_atom(version),
         do: retrieve(file_info, scope, version, [])
+
       def retrieve(file_info, scope, [_ | _] = opts),
         do: retrieve(file_info, scope, :original, opts)
 
       @impl true
       def retrieve(nil, _scope, _version, _opts), do: nil
+
       def retrieve(<<filename::binary>>, scope, version, opts),
         do: retrieve(%{filename: filename}, scope, version, opts)
+
       def retrieve(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
         state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
@@ -180,8 +183,7 @@ defmodule Trunk do
 
       # def reprocess(file_info, scope \\ nil, versions \\ :all, opts \\ [])
       @impl true
-      def reprocess(file_info),
-        do: reprocess(file_info, nil, :all, [])
+      def reprocess(file_info), do: reprocess(file_info, nil, :all, [])
 
       @impl true
       def reprocess(file_info, [_ | _] = opts_or_versions) do
@@ -191,18 +193,22 @@ defmodule Trunk do
           reprocess(file_info, nil, opts_or_versions, [])
         end
       end
+
       def reprocess(file_info, version) when is_atom(version),
         do: reprocess(file_info, nil, version, [])
-      def reprocess(file_info, scope),
-        do: reprocess(file_info, scope, :all, [])
+
+      def reprocess(file_info, scope), do: reprocess(file_info, scope, :all, [])
 
       @impl true
       def reprocess(file_info, [_ | _] = versions, [_ | _] = opts),
         do: reprocess(file_info, nil, versions, opts)
+
       def reprocess(file_info, versions, [_ | _] = opts) when is_atom(versions),
         do: reprocess(file_info, nil, versions, opts)
+
       def reprocess(file_info, scope, versions) when is_atom(versions),
         do: reprocess(file_info, scope, versions, [])
+
       def reprocess(file_info, scope, [_ | _] = opts_or_versions) do
         if Keyword.keyword?(opts_or_versions) do
           reprocess(file_info, scope, :all, opts_or_versions)
@@ -213,32 +219,34 @@ defmodule Trunk do
 
       @impl true
       def reprocess(nil, _scope, _versions, _opts), do: nil
+
       def reprocess(<<filename::binary>>, scope, versions, opts),
         do: reprocess(%{filename: filename}, scope, versions, opts)
+
       def reprocess(%{} = file_info, scope, versions, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
         with state <- State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts),
              {:ok, path} <- Trunk.Processor.retrieve(state, :original),
              {:ok, state} <- __MODULE__.preprocess(%{state | path: path}) do
-          versions = if versions == :all, do: List.delete(opts[:versions], :original), else: versions
+          versions =
+            if versions == :all, do: List.delete(opts[:versions], :original), else: versions
+
           Trunk.Processor.reprocess(state, versions)
         end
       end
 
       @impl true
-      def delete(file_info),
-        do: delete(file_info, [])
+      def delete(file_info), do: delete(file_info, [])
 
       @impl true
-      def delete(file_info, [_ | _] = opts),
-        do: delete(file_info, nil, opts)
-      def delete(file_info, scope),
-        do: delete(file_info, scope, [])
+      def delete(file_info, [_ | _] = opts), do: delete(file_info, nil, opts)
+      def delete(file_info, scope), do: delete(file_info, scope, [])
 
       @impl true
       def delete(<<filename::binary>>, scope, opts),
         do: delete(%{filename: filename}, scope, opts)
+
       def delete(file_info, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
         state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
@@ -247,29 +255,28 @@ defmodule Trunk do
 
       # def url(file_info, scope \\ nil, version \\ :original, opts \\ [])
       @impl true
-      def url(file_info),
-        do: url(file_info, nil, :original, [])
+      def url(file_info), do: url(file_info, nil, :original, [])
 
       @impl true
-      def url(file_info, [_ | _] = opts),
-        do: url(file_info, nil, :original, opts)
-      def url(file_info, version) when is_atom(version),
-        do: url(file_info, nil, version, [])
-      def url(file_info, scope),
-        do: url(file_info, scope, :original, [])
+      def url(file_info, [_ | _] = opts), do: url(file_info, nil, :original, opts)
+      def url(file_info, version) when is_atom(version), do: url(file_info, nil, version, [])
+      def url(file_info, scope), do: url(file_info, scope, :original, [])
 
       @impl true
       def url(file_info, version, [_ | _] = opts) when is_atom(version),
         do: url(file_info, nil, version, opts)
+
       def url(file_info, scope, version) when is_atom(version),
         do: url(file_info, scope, version, [])
-      def url(file_info, scope, [_ | _] = opts),
-        do: url(file_info, scope, :original, opts)
+
+      def url(file_info, scope, [_ | _] = opts), do: url(file_info, scope, :original, opts)
 
       @impl true
       def url(nil, _scope, _version, _opts), do: nil
+
       def url(<<filename::binary>>, scope, version, opts),
         do: url(%{filename: filename}, scope, version, opts)
+
       def url(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
         state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
@@ -292,13 +299,19 @@ defmodule Trunk do
 
       @impl true
       def filename(%{filename: filename}, :original), do: filename
+
       def filename(%{rootname: rootname, extname: extname}, version),
         do: "#{rootname}_#{version}#{extname}"
 
       @impl true
       def storage_opts(_state, _version), do: []
 
-      defoverridable preprocess: 1, postprocess: 3, transform: 2, filename: 2, storage_dir: 2, storage_opts: 2
+      defoverridable preprocess: 1,
+                     postprocess: 3,
+                     transform: 2,
+                     filename: 2,
+                     storage_dir: 2,
+                     storage_opts: 2
     end
   end
 
@@ -316,6 +329,7 @@ defmodule Trunk do
   """
   defmacro validate_file_extensions(extensions) do
     lower_extensions = Enum.map(Macro.expand(extensions, __CALLER__), &String.downcase/1)
+
     quote do
       @impl true
       def preprocess(%{lower_extname: extname} = state) do
@@ -329,11 +343,15 @@ defmodule Trunk do
   end
 
   @type scope :: map | struct
-  @type opts :: Keyword.t
+  @type opts :: Keyword.t()
   @type version :: atom
   @type versions :: [atom]
-  @type file :: String.t | Plug.Upload.t | %{filename: String.t, path: Path.t} | %{filename: String.t, binary: binary}
-  @type file_info :: map | String.t
+  @type file ::
+          String.t()
+          | Plug.Upload.t()
+          | %{filename: String.t(), path: Path.t()}
+          | %{filename: String.t(), binary: binary}
+  @type file_info :: map | String.t()
 
   @doc ~S"""
   A callback that can be used to do any preprocessing on the state before transformation and storage begins.
@@ -352,21 +370,21 @@ defmodule Trunk do
 
   This is also a place to do any processing that might be needed when transforming versions.
   """
-  @callback preprocess(state :: Trunk.State.t) :: {:ok, Trunk.State.t} | {:error, any}
+  @callback preprocess(state :: Trunk.State.t()) :: {:ok, Trunk.State.t()} | {:error, any}
 
   @doc ~S"""
   Stores the supplied file. **This function is generated by `use Trunk`**
 
   Calls `c:store/3` with `store(file, nil, [])`
   """
-  @callback store(file) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback store(file) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Stores the supplied file. **This function is generated by `use Trunk`**
 
   Calls `c:store/3` with `store(file, nil, opts)`
   """
-  @callback store(file, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback store(file, opts) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Stores the supplied file after running it through the processing pipeline. **This function is generated by `use Trunk`**
@@ -381,14 +399,14 @@ defmodule Trunk do
   - `scope` - (optional) a map or struct that will help when generating the filename and storage directory for saving the file
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
   """
-  @callback store(file, scope, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback store(file, scope, opts) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Retrieves the original for the identified file. **This function is generated by `use Trunk`**
 
   Calls `c:retrieve/4` with `retrieve(file_info, nil, :original, [])`
   """
-  @callback retrieve(file_info) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback retrieve(file_info) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Retrieves the original, or specified version, for the identified file. **This function is generated by `use Trunk`**
@@ -397,7 +415,8 @@ defmodule Trunk do
   - With `opts`, calls `c:retrieve/4` with `retrieve(file_info, nil, :original, opts)`
   - With `version`, calls `c:retrieve/4` with `retrieve(file_info, nil, version, [])`
   """
-  @callback retrieve(file_info, scope | opts | version) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback retrieve(file_info, scope | opts | version) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Retrieves the original, or specified version, for the identified file. **This function is generated by `use Trunk`**
@@ -406,7 +425,8 @@ defmodule Trunk do
   - With a scope and version, calls `c:retrieve/4` with `retrieve(file_info, scope, version, [])`
   - With a scope and opts, calls `c:retrieve/4` with `retrieve(file_info, scope, :original, opts)`
   """
-  @callback retrieve(file_info, scope | version, opts | version) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback retrieve(file_info, scope | version, opts | version) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Retrieves the version for the identified file. **This function is generated by `use Trunk`**
@@ -418,14 +438,15 @@ defmodule Trunk do
   - `version` - (optional) an atom representing the version
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
   """
-  @callback retrieve(file_info, scope, version, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback retrieve(file_info, scope, version, opts) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Reprocesses the original file for all versions. **This function is generated by `use Trunk`**
 
   Calls `c:reprocess/4` with `reprocess(file_info, nil, :all, [])`
   """
-  @callback reprocess(file_info) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback reprocess(file_info) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Reprocesses the original file for all or the specified version(s). **This function is generated by `use Trunk`**
@@ -434,7 +455,8 @@ defmodule Trunk do
   - With `opts`, calls `c:reprocess/4` with `reprocess(file_info, nil, :all, opts)`
   - With `version`, calls `c:reprocess/4` with `reprocess(file_info, nil, version, [])`
   """
-  @callback reprocess(file_info, scope | opts | version | versions) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback reprocess(file_info, scope | opts | version | versions) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Reprocesses the original file for all or the specified version(s). **This function is generated by `use Trunk`**
@@ -443,7 +465,8 @@ defmodule Trunk do
   - With a scope and version(s), calls `c:reprocess/4` with `reprocess(file_info, scope, version, [])`
   - With a scope and opts, calls `c:reprocess/4` with `reprocess(file_info, scope, :all, opts)`
   """
-  @callback reprocess(file_info, scope | version | versions, opts | version | versions) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback reprocess(file_info, scope | version | versions, opts | version | versions) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Reprocesses the original file for the specified version(s). **This function is generated by `use Trunk`**
@@ -455,14 +478,15 @@ defmodule Trunk do
   - `version` - (optional) an atom representing the version
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
   """
-  @callback reprocess(file_info, scope, version | versions, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback reprocess(file_info, scope, version | versions, opts) ::
+              {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Deletes the identified file and all its versions. **This function is generated by `use Trunk`**
 
   Calls `c:delete/3` with `delete(file_info, nil, [])`
   """
-  @callback delete(file_info) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback delete(file_info) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Deletes the identified file and all its versions. **This function is generated by `use Trunk`**
@@ -470,7 +494,7 @@ defmodule Trunk do
   - With a `scope`, calls `c:delete/3` with `delete(file_info, scope, [])`
   - With `opts`, calls `c:delete/3` with `delete(file_info, nil, opts)`
   """
-  @callback delete(file_info, scope | opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback delete(file_info, scope | opts) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Deletes the identified file and all its versions. **This function is generated by `use Trunk`**
@@ -481,14 +505,14 @@ defmodule Trunk do
   - `scope` - (optional) a map or struct that will help when generating the filename and storage directory for saving the file
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
   """
-  @callback delete(file_info, scope, opts) :: {:ok, Trunk.State.t} | {:error, Trunk.State.t}
+  @callback delete(file_info, scope, opts) :: {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}
 
   @doc ~S"""
   Generates a URL for the given information. **This function is generated by `use Trunk`**
 
   Calls `c:url/4` with `url(file_info, nil, :original, [])`
   """
-  @callback url(file_info) :: String.t
+  @callback url(file_info) :: String.t()
 
   @doc ~S"""
   Generates a URL for the given information. **This function is generated by `use Trunk`**
@@ -497,7 +521,7 @@ defmodule Trunk do
   - With a `scope`, calls `c:url/4` with `url(file_info, scope, :original, [])`
   - With `opts`, calls `c:url/4` with `url(file_info, nil, :original, opts)`
   """
-  @callback url(file_info, version | scope | opts) :: String.t
+  @callback url(file_info, version | scope | opts) :: String.t()
 
   @doc ~S"""
   Generates a URL for the given information. **This function is generated by `use Trunk`**
@@ -505,7 +529,7 @@ defmodule Trunk do
   - With a `version`, calls `c:url/4` with `url(file_info, nil, version, opts)`
   - With a `scope`, calls `c:url/4` with `url(file_info, scope, :original, opts)`
   """
-  @callback url(file_info, version | scope, opts) :: String.t
+  @callback url(file_info, version | scope, opts) :: String.t()
   @doc ~S"""
   Generates a URL for the given information. **This function is generated by `use Trunk`**
 
@@ -514,7 +538,7 @@ defmodule Trunk do
   - `version` - The file version to which the URL must point
   - `opts` - Override options.
   """
-  @callback url(file_info, scope, version, opts) :: String.t
+  @callback url(file_info, scope, version, opts) :: String.t()
 
   @doc ~S"""
   A callback that should be used to generate the filename specific to each version.
@@ -532,7 +556,7 @@ defmodule Trunk do
     do: "#{rootname}_#{version}#{extname}"
   ```
   """
-  @callback filename(state :: Trunk.State.t, version) :: String.t
+  @callback filename(state :: Trunk.State.t(), version) :: String.t()
 
   @doc ~S"""
   A callback that should be used to determine the storage directory specific to each version.
@@ -553,9 +577,9 @@ defmodule Trunk do
     do: to_string(model_id)
   ```
   """
-  @callback storage_dir(state :: Trunk.State.t, version) :: String.t
+  @callback storage_dir(state :: Trunk.State.t(), version) :: String.t()
 
-  @type storage_opts :: Keyword.t
+  @type storage_opts :: Keyword.t()
   @doc ~S"""
   A callback that should be used to set version specific storage options.
 
@@ -572,13 +596,13 @@ defmodule Trunk do
   def storage_opts(_state, _version), do: [acl: :public_read]
   ```
   """
-  @callback storage_opts(state :: Trunk.State.t, version) :: storage_opts
+  @callback storage_opts(state :: Trunk.State.t(), version) :: storage_opts
 
   @type command :: atom | binary
-  @type args :: String.t | [binary] | function
+  @type args :: String.t() | [binary] | function
   @type ext :: atom
   @type reason :: any
-  @type transform_func :: ((source_path :: String.t) -> {:ok, String.t} | {:error, reason})
+  @type transform_func :: (source_path :: String.t() -> {:ok, String.t()} | {:error, reason})
   @doc ~S"""
   A callback that can be used to generate a transform specific to each version
 
@@ -633,7 +657,8 @@ defmodule Trunk do
   def transform(_state, _version), do: nil
   ```
   """
-  @callback transform(state :: Trunk.State.t, version) :: nil | {command, args} | {command, args, ext} | transform_func
+  @callback transform(state :: Trunk.State.t(), version) ::
+              nil | {command, args} | {command, args, ext} | transform_func
 
   @doc ~S"""
   A callback that can be used to do additional processing on each version file before it gets saved.
@@ -660,5 +685,9 @@ defmodule Trunk do
   end
   ```
   """
-  @callback postprocess(version_state :: Trunk.VersionState.t, version, state :: Trunk.State.t) :: {:ok, Trunk.VersionState.t} | {:error, any}
+  @callback postprocess(
+              version_state :: Trunk.VersionState.t(),
+              version,
+              state :: Trunk.State.t()
+            ) :: {:ok, Trunk.VersionState.t()} | {:error, any}
 end

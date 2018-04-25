@@ -23,7 +23,15 @@ defmodule Trunk.VersionState do
             storage_dir: nil,
             filename: nil,
             storage_opts: []
-  @type t :: %__MODULE__{temp_path: String.t, transform: any, assigns: map, storage_dir: String.t, filename: String.t, storage_opts: Keyword.t}
+
+  @type t :: %__MODULE__{
+          temp_path: String.t(),
+          transform: any,
+          assigns: map,
+          storage_dir: String.t(),
+          filename: String.t(),
+          storage_opts: Keyword.t()
+        }
 
   @doc ~S"""
   Assigns a value to a key on the state.
@@ -37,7 +45,7 @@ defmodule Trunk.VersionState do
   :world
   ```
   """
-  @spec assign(state :: Trunk.VersionState.t, key :: any, value :: any) :: map
+  @spec assign(state :: Trunk.VersionState.t(), key :: any, value :: any) :: map
   def assign(%{assigns: assigns} = version_state, key, value),
     do: %{version_state | assigns: Map.put(assigns, key, value)}
 end

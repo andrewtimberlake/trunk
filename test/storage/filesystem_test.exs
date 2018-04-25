@@ -12,45 +12,119 @@ defmodule Trunk.Storage.FilesystemTest do
 
   describe "save/4" do
     test "successfully save a file", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path)
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path
+               )
+
       assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
 
-    test "will save a file with specific access permissions (string)", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: "0600")
+    test "will save a file with specific access permissions (string)", %{
+      output_path: output_path,
+      fixtures_path: fixtures_path
+    } do
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path,
+                 acl: "0600"
+               )
+
       assert "600" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
 
     test "ignores unparsable acl", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: "wat")
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: :private)
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path,
+                 acl: "wat"
+               )
+
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path,
+                 acl: :private
+               )
     end
 
-    test "will save a file with specific access permissions (number)", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path, acl: 0o640)
+    test "will save a file with specific access permissions (number)", %{
+      output_path: output_path,
+      fixtures_path: fixtures_path
+    } do
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path,
+                 acl: 0o640
+               )
+
       assert "640" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
     end
 
     test "error saving file", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert {:error, :enoent} = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "wrong.jpg"), path: output_path)
+      assert {:error, :enoent} =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "wrong.jpg"),
+                 path: output_path
+               )
     end
   end
 
   describe "retrieve/4" do
-    test "successfully retrieving a file", %{output_path: output_path, fixtures_path: fixtures_path} do
+    test "successfully retrieving a file", %{
+      output_path: output_path,
+      fixtures_path: fixtures_path
+    } do
       refute File.exists?(Path.join(output_path, "coffee.jpg"))
-      assert :ok = Filesystem.retrieve("", "coffee.jpg", Path.join(output_path, "coffee.jpg"), path: fixtures_path)
+
+      assert :ok =
+               Filesystem.retrieve(
+                 "",
+                 "coffee.jpg",
+                 Path.join(output_path, "coffee.jpg"),
+                 path: fixtures_path
+               )
+
       assert File.exists?(Path.join(output_path, "coffee.jpg"))
     end
 
     test "error retrieving a file", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert {:error, :enoent} = Filesystem.retrieve("", "wrong.jpg", Path.join(output_path, "coffee.jpg"), path: fixtures_path)
+      assert {:error, :enoent} =
+               Filesystem.retrieve(
+                 "",
+                 "wrong.jpg",
+                 Path.join(output_path, "coffee.jpg"),
+                 path: fixtures_path
+               )
     end
   end
 
   describe "delete/3" do
     test "successfully save a file", %{output_path: output_path, fixtures_path: fixtures_path} do
-      assert :ok = Filesystem.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), path: output_path)
+      assert :ok =
+               Filesystem.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 path: output_path
+               )
+
       assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
       assert :ok = Filesystem.delete("new/dir", "new-coffee.jpg", path: output_path)
       refute File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
@@ -60,9 +134,18 @@ defmodule Trunk.Storage.FilesystemTest do
   describe "build_url/3" do
     test "it returns a relative url" do
       assert Filesystem.build_uri("new/dir", "new-coffee.jpg") == "new/dir/new-coffee.jpg"
-      assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "http://example.com") == "http://example.com/new/dir/new-coffee.jpg"
-      assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "http://example.com/uploads/") == "http://example.com/uploads/new/dir/new-coffee.jpg"
-      assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "/uploads/") == "/uploads/new/dir/new-coffee.jpg"
+
+      assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "http://example.com") ==
+               "http://example.com/new/dir/new-coffee.jpg"
+
+      assert Filesystem.build_uri(
+               "new/dir",
+               "new-coffee.jpg",
+               base_uri: "http://example.com/uploads/"
+             ) == "http://example.com/uploads/new/dir/new-coffee.jpg"
+
+      assert Filesystem.build_uri("new/dir", "new-coffee.jpg", base_uri: "/uploads/") ==
+               "/uploads/new/dir/new-coffee.jpg"
     end
   end
 

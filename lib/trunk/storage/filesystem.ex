@@ -20,11 +20,12 @@ defmodule Trunk.Storage.Filesystem do
   ```
   Trunk.Storage.Filesystem.save("path/to/", "file.ext", "/tmp/uploaded_file.ext", path: "/opt/uploads")
   """
-  @spec save(String.t, String.t, String.t, keyword) :: :ok | {:error, :file.posix}
+  @spec save(String.t(), String.t(), String.t(), keyword) :: :ok | {:error, :file.posix()}
   def save(directory, filename, source_path, opts \\ []) do
     base_directory = Keyword.fetch!(opts, :path)
     save_path = Path.join(base_directory, directory)
     file_path = Path.join(save_path, filename)
+
     with :ok = File.mkdir_p(save_path) do
       result = File.cp(source_path, file_path)
       acl = parse_acl(Keyword.get(opts, :acl))
@@ -33,13 +34,18 @@ defmodule Trunk.Storage.Filesystem do
   end
 
   defp parse_acl(nil), do: nil
+
   defp parse_acl(<<mode::binary>>) do
     case Integer.parse(mode, 8) do
-      {number, ""} -> number
-      _ -> nil
-      nil
+      {number, ""} ->
+        number
+
+      _ ->
+        nil
+        nil
     end
   end
+
   defp parse_acl(mode) when is_number(mode), do: mode
   defp parse_acl(mode) when is_atom(mode), do: nil
 
@@ -62,10 +68,11 @@ defmodule Trunk.Storage.Filesystem do
   ```
   Trunk.Storage.Filesystem.delete("path/to/", "file.ext", path: "/opt/uploads")
   """
-  @spec delete(String.t, String.t, keyword) :: :ok | {:error, :file.posix}
+  @spec delete(String.t(), String.t(), keyword) :: :ok | {:error, :file.posix()}
   def delete(directory, filename, opts \\ []) do
     base_directory = Keyword.fetch!(opts, :path)
     file_path = base_directory |> Path.join(directory)
+
     case File.rm(Path.join(file_path, filename)) do
       :ok -> :ok
       {:error, :enoent} -> :ok

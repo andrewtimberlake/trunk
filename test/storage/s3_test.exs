@@ -1,5 +1,6 @@
 defmodule Trunk.Storage.S3Test do
-  use ExUnit.Case, async: false # Playing with global scope - S3
+  # Playing with global scope - S3
+  use ExUnit.Case, async: false
 
   alias Trunk.Storage.S3
 
@@ -13,7 +14,7 @@ defmodule Trunk.Storage.S3Test do
       ex_aws: [
         access_key_id: System.get_env("TRUNK_TEST_S3_ACCESS_KEY"),
         secret_access_key: System.get_env("TRUNK_TEST_S3_SECRET_ACCESS_KEY"),
-        region: "eu-west-1",
+        region: "eu-west-1"
         # debug_requests: true,
       ]
     ]
@@ -32,7 +33,10 @@ defmodule Trunk.Storage.S3Test do
     end
 
     @tag :s3
-    test "successfully save a file with default permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+    test "successfully save a file with default permissions", %{
+      fixtures_path: fixtures_path,
+      s3_opts: s3_opts
+    } do
       source_path = Path.join(fixtures_path, "coffee.jpg")
       dir = "dir/#{:rand.uniform(123)}"
       assert :ok = S3.save(dir, "new-coffee.jpg", source_path, s3_opts)
@@ -41,19 +45,45 @@ defmodule Trunk.Storage.S3Test do
     end
 
     @tag :s3
-    test "successfully save a file with set permissions", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+    test "successfully save a file with set permissions", %{
+      fixtures_path: fixtures_path,
+      s3_opts: s3_opts
+    } do
       source_path = Path.join(fixtures_path, "coffee.jpg")
       dir = "dir/#{:rand.uniform(123)}"
-      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, Keyword.merge(s3_opts, acl: :public_read))
+
+      assert :ok =
+               S3.save(
+                 dir,
+                 "new-coffee.jpg",
+                 source_path,
+                 Keyword.merge(s3_opts, acl: :public_read)
+               )
+
       assert file_public?(dir, "new-coffee.jpg", s3_opts)
       remove_file("#{dir}/new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
-    test "successfully save a file with specific headers", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
+    test "successfully save a file with specific headers", %{
+      fixtures_path: fixtures_path,
+      s3_opts: s3_opts
+    } do
       source_path = Path.join(fixtures_path, "coffee.jpg")
       dir = "dir/#{:rand.uniform(123)}"
-      assert :ok = S3.save(dir, "new-coffee.jpg", source_path, Keyword.merge(s3_opts, content_type: "image/wat", content_disposition: "attachment;filename=my-coffee.jpg"))
+
+      assert :ok =
+               S3.save(
+                 dir,
+                 "new-coffee.jpg",
+                 source_path,
+                 Keyword.merge(
+                   s3_opts,
+                   content_type: "image/wat",
+                   content_disposition: "attachment;filename=my-coffee.jpg"
+                 )
+               )
+
       headers = get_headers("#{dir}/new-coffee.jpg", s3_opts)
       assert {"Content-Type", "image/wat"} in headers
       assert {"Content-Disposition", "attachment;filename=my-coffee.jpg"} in headers
@@ -62,14 +92,31 @@ defmodule Trunk.Storage.S3Test do
 
     @tag :s3
     test "error reading source file", %{fixtures_path: fixtures_path} do
-      assert {:error, :enoent} = S3.save("trunk/new/dir", "new-coffee.jpg", Path.join(fixtures_path, "wrong.jpg"), bucket: ["wrong-bucket"])
+      assert {:error, :enoent} =
+               S3.save(
+                 "trunk/new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "wrong.jpg"),
+                 bucket: ["wrong-bucket"]
+               )
     end
 
     @tag :s3
     test "error with S3 bucket", %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
-      s3_opts = Keyword.put(s3_opts, :bucket, "wrong-bucket-#{System.unique_integer([:positive, :monotonic])}")
+      s3_opts =
+        Keyword.put(
+          s3_opts,
+          :bucket,
+          "wrong-bucket-#{System.unique_integer([:positive, :monotonic])}"
+        )
 
-      assert {:error, {:http_error, 404, _}} = S3.save("new/dir", "new-coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), s3_opts)
+      assert {:error, {:http_error, 404, _}} =
+               S3.save(
+                 "new/dir",
+                 "new-coffee.jpg",
+                 Path.join(fixtures_path, "coffee.jpg"),
+                 s3_opts
+               )
     end
   end
 
@@ -97,12 +144,18 @@ defmodule Trunk.Storage.S3Test do
       assert file_saved?("#{dir}/new-coffee.jpg", s3_opts)
       assert :ok = S3.delete(dir, "new-coffee.jpg", s3_opts)
       refute file_saved?("#{dir}/new-coffee.jpg", s3_opts)
-      assert :ok = S3.delete(dir, "new-coffee.jpg", s3_opts) # Can remove the file again without error
+      # Can remove the file again without error
+      assert :ok = S3.delete(dir, "new-coffee.jpg", s3_opts)
     end
 
     @tag :s3
     test "error with S3 bucket", %{s3_opts: s3_opts} do
-      s3_opts = Keyword.put(s3_opts, :bucket, "wrong-bucket-#{System.unique_integer([:positive, :monotonic])}")
+      s3_opts =
+        Keyword.put(
+          s3_opts,
+          :bucket,
+          "wrong-bucket-#{System.unique_integer([:positive, :monotonic])}"
+        )
 
       assert {:error, {:http_error, 404, _}} = S3.delete("new/dir", "new-coffee.jpg", s3_opts)
     end
@@ -111,29 +164,42 @@ defmodule Trunk.Storage.S3Test do
   describe "build_url/3" do
     @tag :s3
     test "it returns a url", %{s3_opts: s3_opts} do
-      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://s3-eu-west-1.amazonaws.com/#{@bucket}/trunk/new/dir/new-coffee.jpg"
+      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) ==
+               "https://s3-eu-west-1.amazonaws.com/#{@bucket}/trunk/new/dir/new-coffee.jpg"
     end
 
     @tag :s3
     test "it returns a signed url", %{s3_opts: s3_opts} do
       s3_opts = Keyword.put(s3_opts, :signed, true)
-      url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse
-      assert %URI{host: "s3-eu-west-1.amazonaws.com", path: "/#{@bucket}/trunk/new/dir/new-coffee.jpg"} = url
+      url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse()
+
+      assert %URI{
+               host: "s3-eu-west-1.amazonaws.com",
+               path: "/#{@bucket}/trunk/new/dir/new-coffee.jpg"
+             } = url
+
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
 
     @tag :s3
     test "it returns a url with a virtual host", %{s3_opts: s3_opts} do
       s3_opts = Keyword.put(s3_opts, :virtual_host, true)
-      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) == "https://#{@bucket}.s3-eu-west-1.amazonaws.com/trunk/new/dir/new-coffee.jpg"
+
+      assert S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) ==
+               "https://#{@bucket}.s3-eu-west-1.amazonaws.com/trunk/new/dir/new-coffee.jpg"
     end
 
     @tag :s3
     test "it returns a signed url with a virtual host", %{s3_opts: s3_opts} do
       s3_opts = Keyword.put(s3_opts, :virtual_host, true)
       s3_opts = Keyword.put(s3_opts, :signed, true)
-      url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse
-      assert %URI{host: "#{@bucket}.s3-eu-west-1.amazonaws.com", path: "/trunk/new/dir/new-coffee.jpg"} = url
+      url = S3.build_uri("trunk/new/dir", "new-coffee.jpg", s3_opts) |> URI.parse()
+
+      assert %URI{
+               host: "#{@bucket}.s3-eu-west-1.amazonaws.com",
+               path: "/trunk/new/dir/new-coffee.jpg"
+             } = url
+
       assert url.query =~ ~r/X-Amz-Algorithm=AWS4-HMAC-SHA256/
     end
   end
@@ -142,6 +208,7 @@ defmodule Trunk.Storage.S3Test do
   defp file_private?(dir, file_name, opts) do
     url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: false))
     {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
+
     if status_code == 403 do
       url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: true))
       {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)

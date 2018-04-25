@@ -8,12 +8,12 @@ defmodule Trunk.Mixfile do
       app: :trunk,
       version: "0.0.7",
       elixir: "~> 1.4",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       description: "A file attachment/storage library for Elixir",
       package: package(),
       deps: deps(),
-      docs: docs(),
+      docs: docs()
     ]
   end
 
@@ -21,7 +21,7 @@ defmodule Trunk.Mixfile do
     [
       maintainers: ["Andrew Timberlake"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @github_url},
+      links: %{"GitHub" => @github_url}
     ]
   end
 
@@ -52,14 +52,13 @@ defmodule Trunk.Mixfile do
   defp deps do
     [
       {:briefly, "~> 0.3.0"},
-
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:ex_aws, "~> 1.1", optional: true},
       {:hackney, "~> 1.7", optional: true},
       {:poison, "~> 3.1", optional: true},
       {:sweet_xml, "~> 0.6", optional: true},
       {:bypass, "~> 0.6", only: :test},
-      {:credo, "~> 0.8", only: [:dev, :test]},
+      {:credo, "~> 0.8", only: [:dev, :test]}
     ]
   end
 end

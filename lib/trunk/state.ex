@@ -37,23 +37,42 @@ defmodule Trunk.State do
             errors: nil,
             opts: [],
             assigns: %{}
-  @type opts :: Keyword.t
-  @type t :: %__MODULE__{module: atom, opts: opts, filename: String.t, rootname: String.t, extname: String.t, lower_extname: String.t, path: String.t, versions: map, async: boolean, timeout: integer, scope: map | struct, storage: atom, storage_opts: Keyword.t, errors: Keyword.t, assigns: map}
+
+  @type opts :: Keyword.t()
+  @type t :: %__MODULE__{
+          module: atom,
+          opts: opts,
+          filename: String.t(),
+          rootname: String.t(),
+          extname: String.t(),
+          lower_extname: String.t(),
+          path: String.t(),
+          versions: map,
+          async: boolean,
+          timeout: integer,
+          scope: map | struct,
+          storage: atom,
+          storage_opts: Keyword.t(),
+          errors: Keyword.t(),
+          assigns: map
+        }
 
   def init(%{} = info, scope, opts) do
     state = restore(info, opts)
     rootname = Path.rootname(state.filename)
     extname = Path.extname(state.filename)
-    %{state |
-      extname: extname,
-      lower_extname: String.downcase(extname),
-      rootname: rootname,
-      timeout: Keyword.fetch!(opts, :timeout),
-      async: Keyword.fetch!(opts, :async),
-      storage: Keyword.fetch!(opts, :storage),
-      storage_opts: Keyword.fetch!(opts, :storage_opts),
-      scope: scope,
-      opts: opts,
+
+    %{
+      state
+      | extname: extname,
+        lower_extname: String.downcase(extname),
+        rootname: rootname,
+        timeout: Keyword.fetch!(opts, :timeout),
+        async: Keyword.fetch!(opts, :async),
+        storage: Keyword.fetch!(opts, :storage),
+        storage_opts: Keyword.fetch!(opts, :storage_opts),
+        scope: scope,
+        opts: opts
     }
   end
 
@@ -70,7 +89,10 @@ defmodule Trunk.State do
   ```
   """
   def put_error(%__MODULE__{errors: errors} = state, version, stage, error),
-    do: %{state | errors: Map.update(errors || %{}, version, [{stage, error}], &([{stage, error} | &1]))}
+    do: %{
+      state
+      | errors: Map.update(errors || %{}, version, [{stage, error}], &[{stage, error} | &1])
+    }
 
   @doc ~S"""
   Assigns a value to a key on the state.
@@ -84,7 +106,7 @@ defmodule Trunk.State do
   :world
   ```
   """
-  @spec assign(state :: Trunk.State.t, key :: any, value :: any) :: map
+  @spec assign(state :: Trunk.State.t(), key :: any, value :: any) :: map
   def assign(%{assigns: assigns} = state, key, value),
     do: %{state | assigns: Map.put(assigns, key, value)}
 
@@ -101,7 +123,7 @@ defmodule Trunk.State do
   ```
   """
   @type version :: atom
-  @spec get_version_assign(state :: Trunk.State.t, version, assign :: atom) :: any | nil
+  @spec get_version_assign(state :: Trunk.State.t(), version, assign :: atom) :: any | nil
   def get_version_assign(%{versions: versions}, version, assign) do
     case versions[version] do
       %{assigns: %{^assign => value}} -> value
@@ -134,10 +156,10 @@ defmodule Trunk.State do
   """
   @type assign_keys :: [atom]
   @type save_opts :: [assigns: :all | assign_keys]
-  @spec save(Trunk.State.t) :: String.t
-  @spec save(Trunk.State.t, [{:as, :string} | save_opts]) :: String.t
-  @spec save(Trunk.State.t, [{:as, :json} | save_opts]) :: String.t
-  @spec save(Trunk.State.t, [{:as, :map} | save_opts]) :: map
+  @spec save(Trunk.State.t()) :: String.t()
+  @spec save(Trunk.State.t(), [{:as, :string} | save_opts]) :: String.t()
+  @spec save(Trunk.State.t(), [{:as, :json} | save_opts]) :: String.t()
+  @spec save(Trunk.State.t(), [{:as, :map} | save_opts]) :: map
   def save(state, opts \\ []) do
     save_as = Keyword.get(opts, :as, :string)
     save_as(state, save_as, opts)
@@ -147,19 +169,24 @@ defmodule Trunk.State do
     unless Keyword.get(opts, :ignore_assigns, false), do: assert_no_assigns(state)
     filename
   end
+
   if Code.ensure_compiled?(Poison),
-    do: defp save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!
+    do: defp(save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!())
+
   defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts) do
     assigns_to_save = Keyword.get(opts, :assigns, :all)
+
     %{filename: filename}
     |> save_assigns(assigns, assigns_to_save)
     |> save_version_assigns(versions, assigns_to_save)
   end
 
   defp assert_no_assigns(%{assigns: assigns}) when assigns != %{},
-    do: raise ArgumentError, message: "Cannot save state as string with non-empty assigns hash"
+    do: raise(ArgumentError, message: "Cannot save state as string with non-empty assigns hash")
+
   defp assert_no_assigns(%{versions: versions}),
-    do: Enum.each(versions, fn({_version, state}) -> assert_no_assigns(state) end)
+    do: Enum.each(versions, fn {_version, state} -> assert_no_assigns(state) end)
+
   defp assert_no_assigns(%{}), do: nil
 
   defp save_assigns(map, assigns, _keys) when assigns == %{}, do: map
@@ -172,13 +199,16 @@ defmodule Trunk.State do
       |> Enum.map(fn
         {version, %{assigns: assigns}} when assigns == %{} ->
           {version, nil}
-        {version, %{assigns: assigns}} ->
-          {version, (if keys == :all, do: assigns, else: Map.take(assigns, keys))}
-      end)
-      |> Enum.filter(fn({_version, value}) -> value end)
-      |> Map.new
 
-    if Enum.empty?(version_assigns), do: map, else: Map.put(map, :version_assigns, version_assigns)
+        {version, %{assigns: assigns}} ->
+          {version, if(keys == :all, do: assigns, else: Map.take(assigns, keys))}
+      end)
+      |> Enum.filter(fn {_version, value} -> value end)
+      |> Map.new()
+
+    if Enum.empty?(version_assigns),
+      do: map,
+      else: Map.put(map, :version_assigns, version_assigns)
   end
 
   @doc ~S"""
@@ -196,38 +226,42 @@ defmodule Trunk.State do
   %Trunk.State{filename: "photo.jpg", assigns: %{hash: "abcdef"}}
   ```
   """
-  @type file_info :: String.t | map
-  @spec restore(file_info, opts) :: Trunk.State.t
+  @type file_info :: String.t() | map
+  @spec restore(file_info, opts) :: Trunk.State.t()
   def restore(file_info, opts \\ [])
+
   if Code.ensure_compiled?(Poison) do
     def restore(<<"{", _rest::binary>> = json, opts) do
       {:ok, map} = Poison.decode(json)
+
       map
       |> keys_to_atom
       |> restore(opts)
     end
   end
-  def restore(<<filename::binary>>, opts),
-    do: restore(%{filename: filename}, opts)
+
+  def restore(<<filename::binary>>, opts), do: restore(%{filename: filename}, opts)
+
   def restore(%{} = info, opts) do
     info = keys_to_atom(info)
     state = struct(__MODULE__, info)
     version_assigns = info[:version_assigns] || %{}
+
     versions =
       opts
       |> Keyword.fetch!(:versions)
-      |> Enum.map(fn(version) ->
+      |> Enum.map(fn version ->
         assigns = version_assigns[version] || %{}
         {version, %VersionState{assigns: assigns}}
       end)
-      |> Map.new
+      |> Map.new()
 
     %{state | versions: versions}
   end
 
   defp keys_to_atom(%{} = map) do
     map
-    |> Enum.map(fn({key, value}) ->
+    |> Enum.map(fn {key, value} ->
       try do
         {String.to_existing_atom(key), keys_to_atom(value)}
       rescue
@@ -235,7 +269,8 @@ defmodule Trunk.State do
           {key, keys_to_atom(value)}
       end
     end)
-    |> Map.new
+    |> Map.new()
   end
+
   defp keys_to_atom(arg), do: arg
 end

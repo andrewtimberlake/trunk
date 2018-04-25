@@ -3,7 +3,7 @@ defmodule Trunk.Storage do
   This is a behaviour that can be implemented by any storage module to make sure it supports all required functions.
   """
 
-  @type opts :: Keyword.t
+  @type opts :: Keyword.t()
 
   @doc ~S"""
   Save the `source_file` to the storage system on path `Path.join(directory, filename)`
@@ -18,9 +18,15 @@ defmodule Trunk.Storage do
   ```
   MyStorage.save("path/to/", "file.ext", "/tmp/uploaded_file.ext", some: :opt)
   """
-  @callback save(directory :: String.t, filenae :: String.t, source_path :: String.t, opts) :: :ok | {:error, any}
+  @callback save(directory :: String.t(), filenae :: String.t(), source_path :: String.t(), opts) ::
+              :ok | {:error, any}
 
-  @callback retrieve(directory :: String.t, filenae :: String.t, destination_path :: String.t, opts) :: :ok | {:error, any}
+  @callback retrieve(
+              directory :: String.t(),
+              filenae :: String.t(),
+              destination_path :: String.t(),
+              opts
+            ) :: :ok | {:error, any}
 
   @doc ~S"""
   Deletes the version file from the storage system at path `Path.join(directory, filename)`
@@ -34,7 +40,7 @@ defmodule Trunk.Storage do
   ```
   MyStorage.delete("path/to/", "file.ext", some: :opt)
   """
-  @callback delete(directory :: String.t, filenae :: String.t, opts) :: :ok | {:error, any}
+  @callback delete(directory :: String.t(), filenae :: String.t(), opts) :: :ok | {:error, any}
 
   @doc ~S"""
   Generates a URL to the S3 object
@@ -49,5 +55,5 @@ defmodule Trunk.Storage do
   #=> "https://my-storage/my-bucket/path/to/file.ext"
   ```
   """
-  @callback build_uri(directory :: String.t, filename :: String.t, opts) :: String.t
+  @callback build_uri(directory :: String.t(), filename :: String.t(), opts) :: String.t()
 end
