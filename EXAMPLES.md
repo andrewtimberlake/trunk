@@ -65,7 +65,7 @@ iex> {:ok, state} = MyTrunk.store("/path/to/picture.png", my_model)
 # Will store original in s3://my-bucket/photos/42/picture.png
 #        and thumbnail in s3://my-bucket/photos/42/thumbnail_889c00fed0f5382b4bdea612ae7a42df.jpg
 
-iex> %{my_model | file: Trunk.State.save(state, as: :hash)}
+iex> %{my_model | file: Trunk.State.save(state, as: :map)}
 %MyModel{id: 42, file: %{filename: "picture.png", version_assigns: %{thumbnail: %{hash: "889c00fed0f5382b4bdea612ae7a42df"}}}}
 
 iex> {:error, "Invalid file"} = MyTrunk.store("/path/to/document.pdf", my_model)
