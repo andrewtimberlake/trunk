@@ -32,8 +32,8 @@ defmodule Trunk.Options do
   defp process_deprecations([head | tail], acc), do: process_deprecations(tail, [head | acc])
 
   defp merge_otp_app_opts(opts, module_opts) do
-    otp_app = Keyword.get(module_opts, :otp_app, [])
-    otp_opts = Application.get_env(otp_app, :trunk, [])
+    otp_app = Keyword.get(module_opts, :otp_app, nil)
+    otp_opts = if otp_app, do: Application.get_env(otp_app, :trunk, []), else: []
     Keyword.merge(opts, otp_opts, &merge_values/3)
   end
 
