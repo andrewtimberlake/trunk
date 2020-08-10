@@ -128,8 +128,8 @@ defmodule Trunk.StateTest do
         }
       }
 
-      assert Poison.decode!(State.save(state, as: :json)) ==
-               Poison.decode!(
+      assert Jason.decode!(State.save(state, as: :json)) ==
+               Jason.decode!(
                  ~S({"filename":"test.jpg","assigns":{"hash":"abcdef"},"version_assigns":{"thumb":{"hash":"abcdfe"},"original":{"hash":"fedcba"}}})
                )
     end

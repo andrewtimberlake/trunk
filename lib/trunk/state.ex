@@ -170,8 +170,7 @@ defmodule Trunk.State do
     filename
   end
 
-  if Code.ensure_compiled?(Poison),
-    do: defp(save_as(state, :json, opts), do: state |> save_as(:map, opts) |> Poison.encode!())
+  defp(save_as(state, :json, opts), do: state |> save_as(:map, opts) |> json_parser().encode!())
 
   defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts) do
     assigns_to_save = Keyword.get(opts, :assigns, :all)
@@ -230,14 +229,12 @@ defmodule Trunk.State do
   @spec restore(file_info, opts) :: Trunk.State.t()
   def restore(file_info, opts \\ [])
 
-  if Code.ensure_compiled?(Poison) do
-    def restore(<<"{", _rest::binary>> = json, opts) do
-      {:ok, map} = Poison.decode(json)
+  def restore(<<"{", _rest::binary>> = json, opts) do
+    {:ok, map} = json_parser().decode(json)
 
-      map
-      |> keys_to_atom
-      |> restore(opts)
-    end
+    map
+    |> keys_to_atom
+    |> restore(opts)
   end
 
   def restore(<<filename::binary>>, opts), do: restore(%{filename: filename}, opts)
@@ -273,4 +270,17 @@ defmodule Trunk.State do
   end
 
   defp keys_to_atom(arg), do: arg
+
+  defp json_parser do
+    cond do
+      Code.ensure_loaded?(Jason) ->
+        Jason
+
+      Code.ensure_loaded?(Poison) ->
+        Poison
+
+        raise RuntimeError,
+              "You must have a JSON parser loaded (Jason and Poison are supported)"
+    end
+  end
 end

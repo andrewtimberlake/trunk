@@ -7,7 +7,7 @@ defmodule Trunk.Mixfile do
     [
       app: :trunk,
       version: "0.0.10",
-      elixir: "~> 1.4",
+      elixir: "~> 1.9",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       description: "A file attachment/storage library for Elixir",
@@ -54,11 +54,12 @@ defmodule Trunk.Mixfile do
       {:briefly, "~> 0.3.0"},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:ex_aws_s3, "~> 2.0", optional: true},
-      {:hackney, "~> 1.7", optional: true},
-      {:poison, "~> 3.1", optional: true},
+      {:hackney, ">= 1.7.0", optional: true},
+      {:poison, ">= 3.1.0", optional: true},
+      {:jason, ">= 1.0.0", optional: true},
       {:sweet_xml, "~> 0.6", optional: true},
-      {:bypass, "~> 0.6", only: :test},
-      {:credo, "~> 0.8", only: [:dev, :test]}
+      {:bypass, "~> 2.0", only: :test},
+      {:credo, "~> 1.0", only: [:dev, :test]}
     ]
   end
 end

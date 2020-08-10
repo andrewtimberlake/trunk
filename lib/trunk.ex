@@ -119,11 +119,13 @@ defmodule Trunk do
       @impl true
       def store(file, [_ | _] = opts, []), do: store(file, nil, opts)
 
-      if Code.ensure_compiled?(:hackney) do
-        def store(<<"http", _rest::binary>> = url, scope, opts) do
+      def store(<<"http", _rest::binary>> = url, scope, opts) do
+        if Code.ensure_loaded?(:hackney) do
           filename = Path.basename(url)
           {:ok, 200, _headers, body} = :hackney.get(url, [], [], with_body: true)
           store(%{filename: filename, binary: body}, scope, opts)
+        else
+          raise RuntimeError, "Unable to store a web path because hackney is not loaded"
         end
       end
 
