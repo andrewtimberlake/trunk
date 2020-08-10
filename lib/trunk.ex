@@ -58,14 +58,14 @@ defmodule Trunk do
         {:ok, state}
       else
         {:error, "Invalid file"}
-      end3
+      end
     end
 
     # Do not transform the original file
     def transform(%Trunk.State{}, :original), do: nil
     # Resize the file to a thumbnail of maximum 200x200px
     def transform(%Trunk.State{}, :thumb),
-      do: {:convert, "-strip -thumbnail 200x200> -lmiit area 10MB -limit disk 100MB"}
+      do: {:convert, "-strip -thumbnail 200x200> -limit area 10MB -limit disk 100MB"}
 
     # Store the file size of each version
     def postprocess(%Trunk.VersionState{temp_path: temp_path} = version_state, _version, %Trunk.State{} = _state) do
