@@ -6,7 +6,7 @@ defmodule Trunk.Mixfile do
   def project do
     [
       app: :trunk,
-      version: "0.0.10",
+      version: "1.0.0",
       elixir: "~> 1.9",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,

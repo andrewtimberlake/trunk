@@ -1,4 +1,5 @@
 # Trunk
+
 [![Build Status](https://travis-ci.org/andrewtimberlake/trunk.svg?branch=master)](https://travis-ci.org/andrewtimberlake/trunk)
 
 **A file attachment/storage library for Elixir**
@@ -10,7 +11,7 @@ Add `trunk` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:trunk, "~> 0.0.10"},
+    {:trunk, "~> 1.0.0"},
 
     # If you want to use Amazon S3, then add:
     {:ex_aws_s3, "~> 2.0"},
@@ -21,7 +22,7 @@ def deps do
 end
 ```
 
-Trunk has only one *hard* dependency on [Briefly](https://hex.pm/packages/briefly) to handle temporary file creation (and auto-destruction)
+Trunk has only one _hard_ dependency on [Briefly](https://hex.pm/packages/briefly) to handle temporary file creation (and auto-destruction)
 
 ## Usage
 
@@ -42,6 +43,7 @@ Trunk has been designed to be highly configurable. It can be configured in stage
 See the [documentation](https://hexdocs.pm/trunk/Trunk.html#module-options) for all config options.
 
 ### Global configuration
+
 ```elixir
 config :trunk,
   storage: Trunk.Storage.Filesystem,
@@ -49,12 +51,15 @@ config :trunk,
 ```
 
 ### App specific configuration for umbrella type configs
+
 ```elixir
 config :my_app, :trunk,
   storage: Trunk.Storage.S3,
   storage_opts: [bucket: "test-trunk"]
 ```
+
 in order for these options to be used, you need to pass the `otp_app` option when calling `use Trunk` as follows:
+
 ```elixir
 defmodule MyTrunk do
   use Trunk, otp_app: :my_app
@@ -62,6 +67,7 @@ end
 ```
 
 ### Module configuration
+
 ```elixir
 defmodule MyTrunk do
   use Trunk, versions: [:original, :trunk],
@@ -94,6 +100,7 @@ Full information can be found [in the documentation](https://hexdocs.pm/trunk/Tr
 You have the option of passing a scope (usually a struct or map) into the transform functions. This scope object will then be available in each callback allowing you to further customise the handling of each version.
 
 ### Example:
+
 ```elixir
 defmodule MyTrunk do
   use Trunk, versions: [:thumb]
