@@ -170,7 +170,7 @@ defmodule Trunk.State do
     filename
   end
 
-  defp(save_as(state, :json, opts), do: state |> save_as(:map, opts) |> json_parser().encode!())
+  defp(save_as(state, :json, opts), do: state |> save_as(:map, opts) |> json_library().encode!())
 
   defp save_as(%{filename: filename, assigns: assigns, versions: versions}, :map, opts) do
     assigns_to_save = Keyword.get(opts, :assigns, :all)
@@ -230,7 +230,7 @@ defmodule Trunk.State do
   def restore(file_info, opts \\ [])
 
   def restore(<<"{", _rest::binary>> = json, opts) do
-    {:ok, map} = json_parser().decode(json)
+    {:ok, map} = json_library().decode(json)
 
     map
     |> keys_to_atom
@@ -271,8 +271,11 @@ defmodule Trunk.State do
 
   defp keys_to_atom(arg), do: arg
 
-  defp json_parser do
+  defp json_library do
     cond do
+      Application.get_env(:trunk, :json_library) ->
+        Application.get_env(:trunk, :json_library)
+
       Code.ensure_loaded?(Jason) ->
         Jason
 
@@ -280,7 +283,7 @@ defmodule Trunk.State do
         Poison
 
         raise RuntimeError,
-              "You must have a JSON parser loaded (Jason and Poison are supported)"
+              "You must have a JSON library loaded (Jason and Poison are supported or specify your own with `config :trunk, json_library: Jason`)"
     end
   end
 end
