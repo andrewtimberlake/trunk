@@ -410,6 +410,24 @@ defmodule TrunkTest do
       {:ok, retrieved_path} = TestTrunk.retrieve(filename, :thumb)
       assert File.read!(Path.join(output_path, "coffee_thumb.jpg")) == File.read!(retrieved_path)
     end
+
+    test "it gets the file from storage and saves to a specific path", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+
+      {:ok, %Trunk.State{filename: filename}} =
+        TestTrunk.store(original_file, versions: [:original, :thumb])
+
+      assert File.exists?(Path.join(output_path, "coffee.jpg"))
+      assert File.exists?(Path.join(output_path, "coffee_thumb.jpg"))
+
+      {:ok, temp_path} = Briefly.create(extname: ".jpg")
+
+      {:ok, ^temp_path} = TestTrunk.retrieve(filename, output_path: temp_path)
+      assert File.read!(original_file) == File.read!(temp_path)
+
+      {:ok, ^temp_path} = TestTrunk.retrieve(filename, :thumb, output_path: temp_path)
+      assert File.read!(Path.join(output_path, "coffee_thumb.jpg")) == File.read!(temp_path)
+    end
   end
 
   describe "reprocess/?" do

@@ -180,7 +180,7 @@ defmodule Trunk do
       def retrieve(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
         state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
-        Trunk.Processor.retrieve(state, version)
+        Trunk.Processor.retrieve(state, version, opts)
       end
 
       # def reprocess(file_info, scope \\ nil, versions \\ :all, opts \\ [])
@@ -229,7 +229,7 @@ defmodule Trunk do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
         with state <- State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts),
-             {:ok, path} <- Trunk.Processor.retrieve(state, :original),
+             {:ok, path} <- Trunk.Processor.retrieve(state, :original, []),
              {:ok, state} <- __MODULE__.preprocess(%{state | path: path}) do
           versions =
             if versions == :all, do: List.delete(opts[:versions], :original), else: versions
@@ -439,6 +439,8 @@ defmodule Trunk do
   - `scope` - (optional) a map or struct that will help when generating the filename and storage directory for saving the file
   - `version` - (optional) an atom representing the version
   - `opts` - (optional) options to override module, app, or global options. See "Options" in the module documentations for all options.
+             Additional options:
+               - `:output_path` a specific path (including filename) to save the file to. Defaults to a temporary file path
   """
   @callback retrieve(file_info, scope, version, opts) ::
               {:ok, Trunk.State.t()} | {:error, Trunk.State.t()}

@@ -41,16 +41,21 @@ defmodule Trunk.Processor do
 
   def retrieve(
         %{versions: versions, storage: storage, storage_opts: storage_opts} = state,
-        version
+        version,
+        opts
       ) do
     map = versions[version]
 
     with {:ok, map} <- get_version_storage_dir(map, version, state),
          {:ok, %{filename: filename, storage_dir: storage_dir}} <-
            get_version_filename(map, version, state),
-         {:ok, temp_path} <- Briefly.create(extname: Path.extname(filename)),
-         :ok <- storage.retrieve(storage_dir, filename, temp_path, storage_opts) do
-      {:ok, temp_path}
+         output_path <-
+           Keyword.get_lazy(opts, :output_path, fn ->
+             {:ok, temp_path} = Briefly.create(extname: Path.extname(filename))
+             temp_path
+           end),
+         :ok <- storage.retrieve(storage_dir, filename, output_path, storage_opts) do
+      {:ok, output_path}
     end
   end
 
