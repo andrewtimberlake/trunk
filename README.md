@@ -1,12 +1,17 @@
 # Trunk
 
 [![Build Status](https://travis-ci.org/andrewtimberlake/trunk.svg?branch=master)](https://travis-ci.org/andrewtimberlake/trunk)
+[![Module Version](https://img.shields.io/hexpm/v/trunk.svg)](https://hex.pm/packages/trunk)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/trunk/)
+[![Total Download](https://img.shields.io/hexpm/dt/trunk.svg)](https://hex.pm/packages/trunk)
+[![License](https://img.shields.io/hexpm/l/trunk.svg)](https://github.com/andrewtimberlake/trunk/blob/master/LICENSE)
+[![Last Updated](https://img.shields.io/github/last-commit/andrewtimberlake/trunk.svg)](https://github.com/andrewtimberlake/trunk/commits/master)
 
-**A file attachment/storage library for Elixir**
+A file attachment/storage library for Elixir.
 
 ## Installation
 
-Add `trunk` to your list of dependencies in `mix.exs`:
+Add `:trunk` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -132,3 +137,10 @@ A shout out to [stavro](https://github.com/stavro) who created [arc](https://git
 
 - [coffee.jpg](https://unsplash.com/photos/Cdz_lvnl37k) by [Ronaldo Arthur Vidal](https://unsplash.com/@ronaldoav)
 - [coffee beans.jpg](http://unsplash.com/photos/JS-QXqSGVE8) by [Alex Jones](https://unsplash.com/@alexjones)
+
+## Copyright and License
+
+Copyright (c) 2017 Andrew Timberlake
+
+This work is free. You can redistribute it and/or modify it under the
+terms of the MIT License. See the [LICENSE.md](./LICENSE.md) file for more details.
