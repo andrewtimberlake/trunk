@@ -18,12 +18,12 @@ defmodule Trunk.Storage do
   ```
   MyStorage.save("path/to/", "file.ext", "/tmp/uploaded_file.ext", some: :opt)
   """
-  @callback save(directory :: String.t(), filenae :: String.t(), source_path :: String.t(), opts) ::
+  @callback save(directory :: String.t(), filename :: String.t(), source_path :: String.t(), opts) ::
               :ok | {:error, any}
 
   @callback retrieve(
               directory :: String.t(),
-              filenae :: String.t(),
+              filename :: String.t(),
               destination_path :: String.t(),
               opts
             ) :: :ok | {:error, any}
@@ -40,7 +40,7 @@ defmodule Trunk.Storage do
   ```
   MyStorage.delete("path/to/", "file.ext", some: :opt)
   """
-  @callback delete(directory :: String.t(), filenae :: String.t(), opts) :: :ok | {:error, any}
+  @callback delete(directory :: String.t(), filename :: String.t(), opts) :: :ok | {:error, any}
 
   @doc ~S"""
   Generates a URL to the S3 object
