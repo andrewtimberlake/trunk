@@ -36,7 +36,7 @@ defmodule Trunk.ProcessorTest do
     end
 
     test "spaces in file names" do
-      original_file = Path.join(__DIR__, "fixtures/coffee beans.jpg")
+      original_file = Path.join(__DIR__, "fixtures/coffee_beans.jpg")
 
       assert {:ok, _version_state} =
                Processor.transform_version(
@@ -51,7 +51,7 @@ defmodule Trunk.ProcessorTest do
     end
 
     test "list of arguments" do
-      original_file = Path.join(__DIR__, "fixtures/coffee beans.jpg")
+      original_file = Path.join(__DIR__, "fixtures/coffee_beans.jpg")
 
       assert {:ok, _version_state} =
                Processor.transform_version(

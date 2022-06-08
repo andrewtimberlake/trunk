@@ -225,7 +225,7 @@ defmodule TrunkTest do
                  )
 
         %{transform_error: [transform: error_msg]} = errors
-        assert error_msg =~ ~r/unrecognized option/
+        assert error_msg =~ ~r/unrecognized option/i
       end
 
       test "preprocessing error async:#{async}" do

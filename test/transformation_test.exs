@@ -17,17 +17,20 @@ defmodule Trunk.TransformationTest do
     def transform(_state, :thumbnails),
       do: fn source_file ->
         {:ok, directory} = Briefly.create(directory: true)
-        output_path = Path.join(directory, "out.jpg")
+        output_path = Path.join(directory, "out-%02d.jpg")
 
-        case System.cmd("convert", [
-               "-density",
-               "300",
-               source_file,
-               "-strip",
-               "-thumbnail",
-               "600x600>",
-               output_path
-             ]) do
+        args = [
+          "-density",
+          "300",
+          source_file,
+          "-strip",
+          "+adjoin",
+          "-thumbnail",
+          "600x600>",
+          output_path
+        ]
+
+        case System.cmd("convert", args) do
           {_, 0} ->
             {:ok, directory |> Path.join("*") |> Path.wildcard()}
 
