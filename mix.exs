@@ -51,7 +51,6 @@ defmodule Trunk.Mixfile do
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:ex_aws_s3, "~> 2.0", optional: true},
       {:hackney, ">= 1.7.0", optional: true},
-      {:poison, ">= 3.1.0", optional: true},
       {:jason, ">= 1.0.0", optional: true},
       {:sweet_xml, "~> 0.6", optional: true},
       {:bypass, "~> 2.0", only: :test},
