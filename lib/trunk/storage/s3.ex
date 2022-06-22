@@ -9,8 +9,8 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
     @doc ~S"""
     Saves the file to Amazon S3.
 
-    - `directory` - The directory (will be combined with the `filename` to form the S3 key.
-    - `filename` - The name of the file (will be combined with the `directory` to form the S3 key.
+    - `directory` - The directory (will be combined with the `filename` to form the S3 object key).
+    - `filename` - The name of the file (will be combined with the `directory` to form the S3 object key).
     - `source_path` - The full path to the file to be stored. This is a path to the uploaded file or a temporary file that has undergone transformation
     - `opts` - The options for the storage system
       - `bucket:` (required) The S3 bucket in which to store the object
@@ -22,7 +22,12 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
     ```
     Trunk.Storage.S3.save("path/to/", "file.ext", "/tmp/uploaded_file.ext", bucket: "my-bucket")
     """
-    @spec save(String.t(), String.t(), String.t(), keyword) :: :ok | {:error, :file.posix()}
+    @spec save(
+            directory :: String.t(),
+            filename :: String.t(),
+            source_path :: String.t(),
+            opts :: keyword
+          ) :: :ok | {:error, :file.posix()}
     def save(directory, filename, source_path, opts \\ []) do
       key = directory |> Path.join(filename)
       bucket = Keyword.fetch!(opts, :bucket)
@@ -40,6 +45,53 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
     defp put_object(bucket, key, source_data, storage_opts, ex_aws_opts) do
       bucket
       |> ExAws.S3.put_object(key, source_data, storage_opts)
+      |> ExAws.request(ex_aws_opts)
+    end
+
+    @doc ~S"""
+    Copies the file within Amazon S3.
+
+    - `directory` - The relative directory within which to find the file (will be combined with the `filename` to form the source S3 object key).
+    - `filename` - The name of the file to be copied from (will be combined with the `directory` to form the source S3 object key).
+    - `to_directory` - The relative directory within which to copy the file (will be combined with the `to_filename` to form the destination S3 object key).
+    - `to_filename` - The name of the file to be copied to (will be combined with the `to_directory` to form the destination S3 object key).
+    - `opts` - The options for the storage system
+      - `path:` (required) The base path within which to save files
+      - `acl:` (optional) The file mode to store the file (accepts octal `0o644` or string `"0644"`). See `File.chmod/2` for more info.
+
+    ## Example:
+    The file will be copied from s3.amazonaws.com/my-bucket/path/to/file.ext to s3.amazonaws.com/my-bucket/copied/to/file.copy
+    ```
+    Trunk.Storage.S3.copy("path/to/", "file.ext", "copied/to/", "file.copy", bucket: "my-bucket")
+    """
+    @spec copy(
+            directory :: String.t(),
+            filename :: String.t(),
+            to_directory :: String.t(),
+            to_filename :: String.t(),
+            opts :: keyword
+          ) :: :ok | {:error, :file.posix()}
+    def copy(directory, filename, to_directory, to_filename, opts \\ []) do
+      key = directory |> Path.join(filename)
+      to_key = to_directory |> Path.join(to_filename)
+      bucket = Keyword.fetch!(opts, :bucket)
+      ex_aws_opts = Keyword.get(opts, :ex_aws, [])
+
+      copy_opts =
+        opts
+        |> Keyword.drop([:bucket, :ex_aws])
+        |> Keyword.put(:metadata_directive, :REPLACE)
+
+      with {:ok, _result} <- copy_object(bucket, key, to_key, copy_opts, ex_aws_opts) do
+        :ok
+      else
+        error -> error
+      end
+    end
+
+    defp copy_object(bucket, key, to_key, storage_opts, ex_aws_opts) do
+      bucket
+      |> ExAws.S3.put_object_copy(to_key, bucket, key, storage_opts)
       |> ExAws.request(ex_aws_opts)
     end
 
@@ -61,8 +113,8 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
     @doc ~S"""
     Deletes the file from Amazon S3.
 
-    - `directory` - The directory (will be combined with the `filename` to form the S3 key.
-    - `filename` - The name of the file (will be combined with the `directory` to form the S3 key.
+    - `directory` - The directory (will be combined with the `filename` to form the S3 object key.
+    - `filename` - The name of the file (will be combined with the `directory` to form the S3 object key.
     - `opts` - The options for the storage system
       - `bucket:` (required) The S3 bucket in which to store the object
       - `ex_aws:` (optional) override options for `ex_aws`
@@ -90,8 +142,8 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
     @doc ~S"""
     Generates a URL to the S3 object
 
-    - `directory` - The directory (will be combined with the `filename` to form the S3 key.
-    - `filename` - The name of the file (will be combined with the `directory` to form the S3 key.
+    - `directory` - The directory (will be combined with the `filename` to form the S3 object key.
+    - `filename` - The name of the file (will be combined with the `directory` to form the S3 object key.
     - `opts` - The options for the storage system
       - `bucket:` (required) The S3 bucket in which to store the object.
       - `virtual_host:` (optional) boolean indicator whether to generate a virtual host style URL or not.

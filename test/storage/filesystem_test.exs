@@ -86,6 +86,97 @@ defmodule Trunk.Storage.FilesystemTest do
     end
   end
 
+  describe "copy/4" do
+    setup %{output_path: output_path, fixtures_path: fixtures_path} do
+      source_path = "old/dir"
+      path = Path.join([output_path, source_path])
+      File.mkdir_p!(path)
+      File.cp!(Path.join(fixtures_path, "coffee.jpg"), Path.join(path, "coffee.jpg"))
+
+      %{source_path: source_path}
+    end
+
+    test "successfully copy a file", %{output_path: output_path, source_path: source_path} do
+      assert :ok =
+               Filesystem.copy(
+                 source_path,
+                 "coffee.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path
+               )
+
+      assert File.exists?(Path.join(output_path, "new/dir/new-coffee.jpg"))
+    end
+
+    test "will copy a file with specific access permissions (string)", %{
+      output_path: output_path,
+      source_path: source_path
+    } do
+      assert :ok =
+               Filesystem.copy(
+                 source_path,
+                 "coffee.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path,
+                 acl: "0600"
+               )
+
+      assert "600" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
+    end
+
+    test "ignores unparsable acl", %{output_path: output_path, source_path: source_path} do
+      assert :ok =
+               Filesystem.copy(
+                 source_path,
+                 "coffee.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path,
+                 acl: "wat"
+               )
+
+      assert :ok =
+               Filesystem.copy(
+                 source_path,
+                 "coffee.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path,
+                 acl: :private
+               )
+    end
+
+    test "will copy a file with specific access permissions (number)", %{
+      output_path: output_path,
+      source_path: source_path
+    } do
+      assert :ok =
+               Filesystem.copy(
+                 source_path,
+                 "coffee.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path,
+                 acl: 0o640
+               )
+
+      assert "640" == print_file_permissions(Path.join(output_path, "new/dir/new-coffee.jpg"))
+    end
+
+    test "error copying a file", %{output_path: output_path, source_path: source_path} do
+      assert {:error, :enoent} =
+               Filesystem.copy(
+                 source_path,
+                 "wrong.jpg",
+                 "new/dir",
+                 "new-coffee.jpg",
+                 path: output_path
+               )
+    end
+  end
+
   describe "retrieve/4" do
     test "successfully retrieving a file", %{
       output_path: output_path,
