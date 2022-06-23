@@ -1,0 +1,43 @@
+version: 2.1
+jobs:
+  test:
+    parameters:
+      elixir_version:
+        type: string
+    working_directory: ~/repo
+    docker:
+      - image: cimg/elixir:<<parameters.elixir_version>>
+        environment:
+          - MIX_ENV: test
+    steps:
+      - run: sudo apt-get update
+      - run: sudo apt-get install imagemagick
+      - run: sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "mix.lock" }}
+      - run:
+          name: Install dependencies
+          command: |
+            mix local.hex --force
+            mix local.rebar --force
+            mix deps.get
+      - run: mix compile
+      - save_cache:
+          paths:
+            - deps
+            - .mix
+          key: v2-dependencies-{{ checksum "mix.lock" }}
+      - run: mix test --exclude not_implemented
+      - run: mix format --check-formatted
+workflows:
+  test_versions:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              elixir_version:
+                - 1.13.4
+                - 1.12.3
+                - 1.11.4
