@@ -24,10 +24,17 @@ defmodule TrunkTest do
     def storage_opts(%Trunk.State{}, _version), do: [acl: "0600"]
 
     @impl true
+    def storage_dir(%Trunk.State{scope: %{id: id, copy: true}}, _version), do: "copy/#{id}"
     def storage_dir(%Trunk.State{scope: %{id: id}}, _version), do: "#{id}"
     def storage_dir(_state, _version), do: ""
 
     @impl true
+    def filename(
+          %Trunk.State{rootname: rootname, extname: extname, scope: %{copy: true}},
+          :thumb
+        ),
+        do: rootname <> "_thumb_copy" <> extname
+
     def filename(%Trunk.State{rootname: rootname, extname: extname}, :thumb),
       do: rootname <> "_thumb" <> extname
 
@@ -392,6 +399,36 @@ defmodule TrunkTest do
       assert File.exists?(Path.join(output_path, "42/image2/coffee.jpg"))
       assert File.exists?(Path.join(output_path, "42/image2/coffee_thumbnail.jpg"))
     end
+  end
+
+  describe "copy/?" do
+    Enum.each([true, false], fn async ->
+      test "it copies the file from the original in storage async:#{async}", %{
+        output_path: output_path
+      } do
+        original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+
+        scope = %{id: 13}
+
+        {:ok, %Trunk.State{} = state} =
+          TestTrunk.store(original_file, scope, async: unquote(async))
+
+        assert File.exists?(Path.join(output_path, "13/coffee.jpg"))
+        assert File.exists?(Path.join(output_path, "13/coffee_thumb.jpg"))
+
+        saved_state = Trunk.State.save(state, as: :map)
+
+        new_scope = %{id: 13, copy: true}
+        {:ok, state} = TestTrunk.copy(saved_state, scope, new_scope, async: unquote(async))
+        assert Trunk.State.save(state, as: :map) == saved_state
+        # Original files still exist
+        assert File.exists?(Path.join(output_path, "13/coffee.jpg"))
+        assert File.exists?(Path.join(output_path, "13/coffee_thumb.jpg"))
+        # Copies exist
+        assert File.exists?(Path.join(output_path, "copy/13/coffee.jpg"))
+        assert File.exists?(Path.join(output_path, "copy/13/coffee_thumb_copy.jpg"))
+      end
+    end)
   end
 
   describe "retrieve/1" do
