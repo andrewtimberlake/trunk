@@ -31,7 +31,8 @@ defmodule Trunk.Mixfile do
       extras: [
         "LICENSE.md": [title: "License"],
         "README.md": [title: "Overview"],
-        "USAGE.md": [title: "Usage"]
+        "USAGE.md": [title: "Usage"],
+        "CHANGELOG.md": [title: "Change Log"]
       ],
       main: "readme",
       source_url: @github_url,

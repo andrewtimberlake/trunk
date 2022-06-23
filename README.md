@@ -1,6 +1,6 @@
 # Trunk
 
-[![Build Status](https://travis-ci.org/andrewtimberlake/trunk.svg?branch=master)](https://travis-ci.org/andrewtimberlake/trunk)
+[![Build Status](https://circleci.com/gh/andrewtimberlake/trunk.svg?style=shield)](https://circleci.com/gh/andrewtimberlake/trunk)
 [![Module Version](https://img.shields.io/hexpm/v/trunk.svg)](https://hex.pm/packages/trunk)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/trunk/)
 [![Total Download](https://img.shields.io/hexpm/dt/trunk.svg)](https://hex.pm/packages/trunk)
