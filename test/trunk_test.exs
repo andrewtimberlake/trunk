@@ -429,11 +429,16 @@ defmodule TrunkTest do
       output_path: output_path
     } do
       original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
-      {:ok, _state} = IgnoreTrunk.store(original_file, model)
+      {:ok, state} = IgnoreTrunk.store(original_file, model)
+      file_info = Trunk.State.save(state, as: :map)
 
       assert File.exists?(Path.join(output_path, "original_coffee.jpg"))
       assert File.exists?(Path.join(output_path, "thumbnail_coffee.jpg"))
       refute File.exists?(Path.join(output_path, "ignore_coffee.jpg"))
+
+      assert IgnoreTrunk.url(file_info, model, :original)
+      assert IgnoreTrunk.url(file_info, model, :thumbnail)
+      refute IgnoreTrunk.url(file_info, model, :ignore)
     end
   end
 

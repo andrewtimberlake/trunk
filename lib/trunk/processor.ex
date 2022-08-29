@@ -250,7 +250,9 @@ defmodule Trunk.Processor do
         map
       end
 
-    storage.build_uri(storage_dir, filename, storage_opts)
+    if filename do
+      storage.build_uri(storage_dir, filename, storage_opts)
+    end
   end
 
   defp get_version_transform(version_state, version, %{module: module} = state),
