@@ -2,7 +2,7 @@ defmodule Trunk.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/andrewtimberlake/trunk"
-  @version "1.2.0"
+  @version "1.2.1"
 
   def project do
     [

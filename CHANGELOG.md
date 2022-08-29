@@ -4,3 +4,7 @@
 
 - Added CHANGELOG
 - Add `Trunk.copy/4` to copy files between "folders" within the same file system (different directores in filesystem or different object keys in same S3 bucket)
+
+## 1.2.1
+
+- Return `nil` from `Trunk.filename/2` to prevent storing a specific version
