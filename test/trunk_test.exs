@@ -401,6 +401,42 @@ defmodule TrunkTest do
     end
   end
 
+  describe "don’t save version with nil filename" do
+    defmodule IgnoreTrunk do
+      output_path = Path.join(__DIR__, "output")
+
+      use Trunk,
+        versions: [:original, :thumbnail, :ignore],
+        storage: Trunk.Storage.Filesystem,
+        storage_opts: [path: unquote(output_path)]
+
+      @impl true
+      def filename(%{filename: _filename}, :ignore),
+        do: nil
+
+      def filename(%{filename: filename}, version),
+        do: "#{version}_#{filename}"
+    end
+
+    setup do
+      model = %{id: 42}
+      output_path = Path.join(__DIR__, "output")
+      {:ok, model: model, output_path: output_path}
+    end
+
+    test "it stores doesn’t save the :ignore version", %{
+      model: model,
+      output_path: output_path
+    } do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+      {:ok, _state} = IgnoreTrunk.store(original_file, model)
+
+      assert File.exists?(Path.join(output_path, "original_coffee.jpg"))
+      assert File.exists?(Path.join(output_path, "thumbnail_coffee.jpg"))
+      refute File.exists?(Path.join(output_path, "ignore_coffee.jpg"))
+    end
+  end
+
   describe "copy/?" do
     Enum.each([true, false], fn async ->
       test "it copies the file from the original in storage async:#{async}", %{

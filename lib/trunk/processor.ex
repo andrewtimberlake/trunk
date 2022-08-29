@@ -319,6 +319,10 @@ defmodule Trunk.Processor do
   defp get_version_filename(version_state, version, %{module: module} = state),
     do: {:ok, %{version_state | filename: module.filename(state, version)}}
 
+  defp save_version(%{filename: nil} = version_state, _version, _opts) do
+    {:ok, version_state}
+  end
+
   defp save_version(
          %{
            filename: filename,

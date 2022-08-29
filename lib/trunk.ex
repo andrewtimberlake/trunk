@@ -573,6 +573,7 @@ defmodule Trunk do
 
   @doc ~S"""
   A callback that should be used to generate the filename specific to each version.
+  Return `nil` to prevent storing a specific version
 
   - `state` - The trunk state
   - `version` - An atom representing the version
@@ -587,7 +588,7 @@ defmodule Trunk do
     do: "#{rootname}_#{version}#{extname}"
   ```
   """
-  @callback filename(state :: Trunk.State.t(), version) :: String.t()
+  @callback filename(state :: Trunk.State.t(), version) :: String.t() | nil
 
   @doc ~S"""
   A callback that should be used to determine the storage directory specific to each version.
