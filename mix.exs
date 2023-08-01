@@ -48,7 +48,7 @@ defmodule Trunk.Mixfile do
 
   defp deps do
     [
-      {:briefly, "~> 0.3.0"},
+      {:briefly, "~> 0.4.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:ex_aws_s3, "~> 2.0", optional: true},
       {:hackney, ">= 1.7.0", optional: true},
