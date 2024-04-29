@@ -129,7 +129,7 @@ defmodule Trunk.Storage.Filesystem do
   - `directory` - The relative directory where the file is saved
   - `filename` - The name of the file that was previous saved
   - `opts` - The options for the storage system
-    - `base_url:` (optional) The base url to join the path to
+    - `base_uri:` (optional) The base url to join the path to
 
   ## Example:
   ```
