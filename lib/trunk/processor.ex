@@ -310,7 +310,7 @@ defmodule Trunk.Processor do
     do: [source | arguments] ++ [destination]
 
   defp prepare_transform_arguments(source, destination, arguments),
-    do: prepare_transform_arguments(source, destination, String.split(arguments, " "))
+    do: prepare_transform_arguments(source, destination, String.split(arguments))
 
   defp get_version_storage_dir(version_state, version, %{module: module} = state),
     do: {:ok, %{version_state | storage_dir: module.storage_dir(state, version)}}

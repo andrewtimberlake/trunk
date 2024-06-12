@@ -243,6 +243,6 @@ defmodule Trunk.Storage.FilesystemTest do
   defp print_file_permissions(path) do
     require Bitwise
     {:ok, %{mode: mode}} = File.stat(path)
-    :io_lib.format('~.8B', [Bitwise.band(mode, 0o777)]) |> to_string
+    :io_lib.format(~c'~.8B', [Bitwise.band(mode, 0o777)]) |> to_string()
   end
 end
