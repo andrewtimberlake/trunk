@@ -55,7 +55,8 @@ defmodule Trunk.Mixfile do
       {:jason, ">= 1.0.0", optional: true},
       {:sweet_xml, "~> 0.6", optional: true},
       {:bypass, "~> 2.0", only: :test},
-      {:credo, "~> 1.0", only: [:dev, :test]}
+      {:credo, "~> 1.0", only: [:dev, :test]},
+      {:quokka, "~> 2.6", only: [:dev, :test], runtime: false}
     ]
   end
 end

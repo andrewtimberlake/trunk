@@ -1,11 +1,12 @@
 defmodule TrunkTest do
   # We are playing with global scope (filesystem)
   use ExUnit.Case, async: false
+
   doctest Trunk
 
-  defmodule TestTrunk do
-    output_path = Path.join(__DIR__, "output")
+  output_path = Path.join(__DIR__, "output")
 
+  defmodule TestTrunk do
     use Trunk,
       versions: [:original, :thumb, :png_thumb, :function],
       storage: Trunk.Storage.Filesystem,
@@ -45,9 +46,8 @@ defmodule TrunkTest do
     @impl true
     def transform(_, :thumb), do: {:convert, "-strip -thumbnail 100x100>"}
 
-    def transform(_, :png_thumb),
-      # The file is converted before asking for the filename (so you can be really fancy)
-      do: {:convert, "-strip -thumbnail 100x100>", :png}
+    # The file is converted before asking for the filename (so you can be really fancy)
+    def transform(_, :png_thumb), do: {:convert, "-strip -thumbnail 100x100>", :png}
 
     def transform(_, :transform_error), do: {:convert, "-strip -wrongOption"}
 
@@ -62,8 +62,6 @@ defmodule TrunkTest do
   end
 
   defmodule Md5Trunk do
-    output_path = Path.join(__DIR__, "output")
-
     use Trunk,
       versions: [:original, :thumb],
       storage: Trunk.Storage.Filesystem,
@@ -252,8 +250,6 @@ defmodule TrunkTest do
   end
 
   defmodule TimeoutTrunk do
-    output_path = Path.join(__DIR__, "output")
-
     use Trunk,
       versions: [:one, :two, :three],
       storage: Trunk.Storage.Filesystem,
@@ -343,8 +339,6 @@ defmodule TrunkTest do
 
   describe "validate_file_extensions/1" do
     defmodule ValidateTrunk do
-      output_path = Path.join(__DIR__, "output")
-
       use Trunk,
         versions: [:original],
         storage: Trunk.Storage.Filesystem,
@@ -368,8 +362,6 @@ defmodule TrunkTest do
 
   describe "multiple fields per model" do
     defmodule MultiFieldTrunk do
-      output_path = Path.join(__DIR__, "output")
-
       use Trunk,
         versions: [:original, :thumbnail],
         storage: Trunk.Storage.Filesystem,
@@ -403,19 +395,15 @@ defmodule TrunkTest do
 
   describe "don’t save version with nil filename" do
     defmodule IgnoreTrunk do
-      output_path = Path.join(__DIR__, "output")
-
       use Trunk,
         versions: [:original, :thumbnail, :ignore],
         storage: Trunk.Storage.Filesystem,
         storage_opts: [path: unquote(output_path)]
 
       @impl true
-      def filename(%{filename: _filename}, :ignore),
-        do: nil
+      def filename(%{filename: _filename}, :ignore), do: nil
 
-      def filename(%{filename: filename}, version),
-        do: "#{version}_#{filename}"
+      def filename(%{filename: filename}, version), do: "#{version}_#{filename}"
     end
 
     setup do

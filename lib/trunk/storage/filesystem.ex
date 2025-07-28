@@ -31,11 +31,10 @@ defmodule Trunk.Storage.Filesystem do
     save_path = Path.join(base_directory, directory)
     file_path = Path.join(save_path, filename)
 
-    with :ok = File.mkdir_p(save_path) do
-      result = File.cp(source_path, file_path)
-      acl = parse_acl(Keyword.get(opts, :acl))
-      if acl, do: File.chmod(file_path, acl), else: result
-    end
+    :ok = File.mkdir_p(save_path)
+    result = File.cp(source_path, file_path)
+    acl = parse_acl(Keyword.get(opts, :acl))
+    if acl, do: File.chmod(file_path, acl), else: result
   end
 
   @doc ~S"""
@@ -69,11 +68,10 @@ defmodule Trunk.Storage.Filesystem do
     to_path = Path.join(base_directory, to_directory)
     to_file_path = Path.join(to_path, to_filename)
 
-    with :ok = File.mkdir_p(to_path) do
-      result = File.cp(from_file_path, to_file_path)
-      acl = parse_acl(Keyword.get(opts, :acl))
-      if acl, do: File.chmod(to_file_path, acl), else: result
-    end
+    :ok = File.mkdir_p(to_path)
+    result = File.cp(from_file_path, to_file_path)
+    acl = parse_acl(Keyword.get(opts, :acl))
+    if acl, do: File.chmod(to_file_path, acl), else: result
   end
 
   defp parse_acl(nil), do: nil

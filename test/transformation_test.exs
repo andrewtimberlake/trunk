@@ -31,11 +31,8 @@ defmodule Trunk.TransformationTest do
         ]
 
         case System.cmd("convert", args) do
-          {_, 0} ->
-            {:ok, directory |> Path.join("*") |> Path.wildcard()}
-
-          {output, _} ->
-            {:error, output}
+          {_, 0} -> {:ok, directory |> Path.join("*") |> Path.wildcard()}
+          {output, _} -> {:error, output}
         end
       end
   end

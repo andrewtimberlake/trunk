@@ -13,12 +13,12 @@ defmodule Trunk.Options do
     defaults
     |> Keyword.merge(Application.get_all_env(:trunk), &merge_values/3)
     # Application.get_all_env will return every config for the :trunk app
-    |> filter_options
+    |> filter_options()
     #  so we filter it for only the ones we need.
     |> merge_otp_app_opts(module_opts)
     |> Keyword.merge(module_opts, &merge_values/3)
     |> Keyword.merge(method_opts, &merge_values/3)
-    |> process_deprecations
+    |> process_deprecations()
   end
 
   defp process_deprecations(keyword_lsit, acc \\ [])

@@ -106,8 +106,9 @@ defmodule Trunk do
     quote location: :keep do
       @behaviour Trunk
 
-      require Trunk
       import Trunk, only: [validate_file_extensions: 1]
+
+      require Trunk
 
       @impl true
       def store(file), do: store(file, nil, [])
@@ -142,9 +143,10 @@ defmodule Trunk do
       def store(%{filename: filename, path: path}, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
-        with state <-
-               State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts),
-             {:ok, state} <- __MODULE__.preprocess(state) do
+        state =
+          State.init(%{filename: filename, path: path, module: __MODULE__}, scope, opts)
+
+        with {:ok, state} <- __MODULE__.preprocess(state) do
           Trunk.Processor.store(state)
         end
       end
@@ -157,8 +159,8 @@ defmodule Trunk do
 
       def copy(%{} = file_info, old_scope, new_scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        old_state = State.init(Map.merge(file_info, %{module: __MODULE__}), old_scope, opts)
-        new_state = State.init(Map.merge(file_info, %{module: __MODULE__}), new_scope, opts)
+        old_state = State.init(Map.put(file_info, :module, __MODULE__), old_scope, opts)
+        new_state = State.init(Map.put(file_info, :module, __MODULE__), new_scope, opts)
         Trunk.Processor.copy(old_state, new_state)
       end
 
@@ -192,7 +194,7 @@ defmodule Trunk do
 
       def retrieve(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
+        state = State.init(Map.put(file_info, :module, __MODULE__), scope, opts)
         Trunk.Processor.retrieve(state, version, opts)
       end
 
@@ -241,8 +243,9 @@ defmodule Trunk do
       def reprocess(%{} = file_info, scope, versions, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
 
-        with state <- State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts),
-             {:ok, path} <- Trunk.Processor.retrieve(state, :original, []),
+        state = State.init(Map.put(file_info, :module, __MODULE__), scope, opts)
+
+        with {:ok, path} <- Trunk.Processor.retrieve(state, :original, []),
              {:ok, state} <- __MODULE__.preprocess(%{state | path: path}) do
           versions =
             if versions == :all, do: List.delete(opts[:versions], :original), else: versions
@@ -264,7 +267,7 @@ defmodule Trunk do
 
       def delete(file_info, scope, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
+        state = State.init(Map.put(file_info, :module, __MODULE__), scope, opts)
         Trunk.Processor.delete(state)
       end
 
@@ -294,7 +297,7 @@ defmodule Trunk do
 
       def url(%{} = file_info, scope, version, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
-        state = State.init(Map.merge(file_info, %{module: __MODULE__}), scope, opts)
+        state = State.init(Map.put(file_info, :module, __MODULE__), scope, opts)
 
         Trunk.Processor.generate_url(state, version)
       end

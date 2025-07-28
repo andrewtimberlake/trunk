@@ -37,8 +37,6 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
       with {:ok, source_data} <- File.read(source_path),
            {:ok, _result} <- put_object(bucket, key, source_data, save_opts, ex_aws_opts) do
         :ok
-      else
-        error -> error
       end
     end
 
@@ -82,9 +80,8 @@ if match?({:module, _}, Code.ensure_compiled(ExAws.S3)) do
         |> Keyword.drop([:bucket, :ex_aws])
         |> Keyword.put(:metadata_directive, :REPLACE)
 
-      with {:ok, _result} <- copy_object(bucket, key, to_key, copy_opts, ex_aws_opts) do
-        :ok
-      else
+      case copy_object(bucket, key, to_key, copy_opts, ex_aws_opts) do
+        {:ok, _result} -> :ok
         error -> error
       end
     end

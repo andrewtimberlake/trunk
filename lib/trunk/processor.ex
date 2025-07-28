@@ -39,16 +39,11 @@ defmodule Trunk.Processor do
     end
   end
 
-  def copy(old_state, %{async: true} = new_state),
-    do: copy_async(old_state, new_state)
+  def copy(old_state, %{async: true} = new_state), do: copy_async(old_state, new_state)
 
-  def copy(old_state, %{async: false} = new_state),
-    do: copy_sync(old_state, new_state)
+  def copy(old_state, %{async: false} = new_state), do: copy_sync(old_state, new_state)
 
-  defp copy_async(
-         %{versions: from_versions} = old_state,
-         %{versions: to_versions} = new_state
-       ) do
+  defp copy_async(%{versions: from_versions} = old_state, %{versions: to_versions} = new_state) do
     process_async(from_versions, new_state, fn version, from_map, new_state ->
       to_map = Access.get(to_versions, version, %{})
 
@@ -115,7 +110,7 @@ defmodule Trunk.Processor do
     with {:ok, map} <- get_version_storage_dir(map, version, state),
          {:ok, %{filename: filename, storage_dir: storage_dir}} <-
            get_version_filename(map, version, state),
-         output_path <-
+         output_path =
            Keyword.get_lazy(opts, :output_path, fn ->
              {:ok, temp_path} = Briefly.create(extname: Path.extname(filename))
              temp_path
@@ -131,10 +126,9 @@ defmodule Trunk.Processor do
     versions =
       version
       |> List.wrap()
-      |> Enum.map(fn version ->
+      |> Map.new(fn version ->
         {version, versions[version]}
       end)
-      |> Map.new()
 
     store_async(versions, state)
   end
@@ -194,7 +188,7 @@ defmodule Trunk.Processor do
       {version, {:error, stage, error}}, state ->
         State.put_error(state, version, stage, error)
     end)
-    |> ok
+    |> ok()
   end
 
   defp find_task_version([], _task), do: nil
@@ -245,10 +239,11 @@ defmodule Trunk.Processor do
     map = versions[version]
 
     %{filename: filename, storage_dir: storage_dir} =
-      with {:ok, map} = get_version_storage_dir(map, version, state),
-           {:ok, map} = get_version_filename(map, version, state) do
+      (
+        {:ok, map} = get_version_storage_dir(map, version, state)
+        {:ok, map} = get_version_filename(map, version, state)
         map
-      end
+      )
 
     if filename do
       storage.build_uri(storage_dir, filename, storage_opts)
@@ -267,7 +262,7 @@ defmodule Trunk.Processor do
       {:ok, temp_path} ->
         version_state
         |> Map.put(:temp_path, temp_path)
-        |> ok
+        |> ok()
 
       {:error, error} ->
         {:error, :transform, error}
@@ -357,16 +352,10 @@ defmodule Trunk.Processor do
 
   defp copy_version(
          _version,
-         %{
-           filename: from_filename,
-           storage_dir: from_storage_dir
-         } = _from_version_state,
+         %{filename: from_filename, storage_dir: from_storage_dir} = _from_version_state,
          _old_state,
-         %{
-           filename: to_filename,
-           storage_dir: to_storage_dir,
-           storage_opts: version_storage_opts
-         } = to_version_state,
+         %{filename: to_filename, storage_dir: to_storage_dir, storage_opts: version_storage_opts} =
+           to_version_state,
          %{storage: storage, storage_opts: storage_opts}
        ) do
     storage_opts = Keyword.merge(storage_opts, version_storage_opts)

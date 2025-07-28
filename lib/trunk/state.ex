@@ -166,7 +166,7 @@ defmodule Trunk.State do
   end
 
   defp save_as(%{filename: filename} = state, :string, opts) do
-    unless Keyword.get(opts, :ignore_assigns, false), do: assert_no_assigns(state)
+    if !Keyword.get(opts, :ignore_assigns, false), do: assert_no_assigns(state)
     filename
   end
 
@@ -233,7 +233,7 @@ defmodule Trunk.State do
     {:ok, map} = json_parser().decode(json)
 
     map
-    |> keys_to_atom
+    |> keys_to_atom()
     |> restore(opts)
   end
 
@@ -247,18 +247,17 @@ defmodule Trunk.State do
     versions =
       opts
       |> Keyword.fetch!(:versions)
-      |> Enum.map(fn version ->
+      |> Map.new(fn version ->
         assigns = version_assigns[version] || %{}
         {version, %VersionState{assigns: assigns}}
       end)
-      |> Map.new()
 
     %{state | versions: versions}
   end
 
   defp keys_to_atom(%{} = map) do
     map
-    |> Enum.map(fn {key, value} ->
+    |> Map.new(fn {key, value} ->
       try do
         {String.to_existing_atom(key), keys_to_atom(value)}
       rescue
@@ -266,7 +265,6 @@ defmodule Trunk.State do
           {key, keys_to_atom(value)}
       end
     end)
-    |> Map.new()
   end
 
   defp keys_to_atom(arg), do: arg

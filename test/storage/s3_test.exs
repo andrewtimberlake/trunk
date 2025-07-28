@@ -57,7 +57,7 @@ defmodule Trunk.Storage.S3Test do
                  dir,
                  "new-coffee.jpg",
                  source_path,
-                 Keyword.merge(s3_opts, acl: :public_read)
+                 Keyword.put(s3_opts, :acl, :public_read)
                )
 
       assert file_public?(dir, "new-coffee.jpg", s3_opts)
@@ -124,7 +124,7 @@ defmodule Trunk.Storage.S3Test do
     setup %{fixtures_path: fixtures_path, s3_opts: s3_opts} do
       source_path = "old/dir"
 
-      unless file_saved?("#{source_path}/coffee.jpg", s3_opts) do
+      if !file_saved?("#{source_path}/coffee.jpg", s3_opts) do
         :ok = S3.save(source_path, "coffee.jpg", Path.join(fixtures_path, "coffee.jpg"), s3_opts)
       end
 
@@ -163,7 +163,7 @@ defmodule Trunk.Storage.S3Test do
                  "coffee.jpg",
                  dir,
                  "new-coffee.jpg",
-                 Keyword.merge(s3_opts, acl: :public_read)
+                 Keyword.put(s3_opts, :acl, :public_read)
                )
 
       assert file_public?(dir, "new-coffee.jpg", s3_opts)
@@ -310,11 +310,11 @@ defmodule Trunk.Storage.S3Test do
 
   # Make a public request for the file to check it fails followed by a signed request to check it succeeds
   defp file_private?(dir, file_name, opts) do
-    url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: false))
+    url = S3.build_uri(dir, file_name, Keyword.put(opts, :signed, false))
     {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
 
     if status_code == 403 do
-      url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: true))
+      url = S3.build_uri(dir, file_name, Keyword.put(opts, :signed, true))
       {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
       status_code == 200
     else
@@ -324,7 +324,7 @@ defmodule Trunk.Storage.S3Test do
 
   # Make a public request for the file to check it succeeds
   defp file_public?(dir, file_name, opts) do
-    url = S3.build_uri(dir, file_name, Keyword.merge(opts, signed: false))
+    url = S3.build_uri(dir, file_name, Keyword.put(opts, :signed, false))
     {:ok, status_code, _headers, _body} = :hackney.get(url, [], <<>>, with_body: true)
     status_code == 200
   end
