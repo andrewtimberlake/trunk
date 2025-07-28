@@ -242,16 +242,40 @@ defmodule Trunk do
 
       def reprocess(%{} = file_info, scope, versions, opts) do
         opts = Trunk.Options.parse(unquote(module_opts), opts)
+        versions = if versions == :all, do: opts[:versions], else: List.wrap(versions)
+        versions = versions -- [:original]
 
         state = State.init(Map.put(file_info, :module, __MODULE__), scope, opts)
 
-        with {:ok, path} <- Trunk.Processor.retrieve(state, :original, []),
-             {:ok, state} <- __MODULE__.preprocess(%{state | path: path}) do
-          versions =
-            if versions == :all, do: List.delete(opts[:versions], :original), else: versions
+        dependencies =
+          state.versions
+          |> Map.take(versions)
+          |> Enum.flat_map(fn {_version, %{dependencies: dependencies}} ->
+            List.wrap(dependencies)
+          end)
+          |> Enum.uniq()
 
+        with {:ok, path} <- Trunk.Processor.retrieve(state, :original, []),
+             {:ok, state} <- __MODULE__.preprocess(%{state | path: path}),
+             {:ok, state} <- retrieve_dependencies(state, dependencies) do
           Trunk.Processor.reprocess(state, versions)
         end
+      end
+
+      defp retrieve_dependencies(state, dependencies) do
+        Enum.reduce_while(dependencies, {:ok, state}, fn dependency, {:ok, state} ->
+          case Trunk.Processor.retrieve(state, dependency, []) do
+            {:ok, path} ->
+              version_state = state.versions[dependency]
+              version_state = %{version_state | temp_path: path}
+
+              {:cont,
+               {:ok, %{state | versions: Map.put(state.versions, dependency, version_state)}}}
+
+            {:error, error} ->
+              {:halt, {:error, error}}
+          end
+        end)
       end
 
       @impl true

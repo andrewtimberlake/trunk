@@ -176,7 +176,7 @@ defmodule Trunk.Processor do
         {version, versions[version]}
       end)
 
-    store_async(versions, state)
+    store_sync(versions, state)
   end
 
   def delete(%{versions: versions, async: true} = state) do
