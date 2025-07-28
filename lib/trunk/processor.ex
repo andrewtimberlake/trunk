@@ -7,35 +7,81 @@ defmodule Trunk.Processor do
   def store(%{versions: versions, async: false} = state), do: store_sync(versions, state)
 
   defp store_async(versions, state) do
-    process_async(versions, state, fn version, map, state ->
-      with {:ok, map} <- get_version_transform(map, version, state),
-           {:ok, map} <- transform_version(map, version, update_state(state, version, map)),
-           {:ok, map} <- postprocess_version(map, version, update_state(state, version, map)),
-           {:ok, map} <- get_version_storage_dir(map, version, update_state(state, version, map)),
-           {:ok, map} <- get_version_filename(map, version, update_state(state, version, map)),
-           {:ok, map} <- get_version_storage_opts(map, version, update_state(state, version, map)) do
-        save_version(map, version, update_state(state, version, map))
-      end
+    has_dependencies? =
+      Enum.any?(versions, fn {_version, %{dependencies: dependencies}} -> dependencies != [] end)
+
+    if has_dependencies? do
+      raise "Dependencies are not supported in async mode yet"
+    end
+
+    process_async(versions, state, fn version, _, state ->
+      store_version(version, state)
     end)
   end
 
-  def store_sync(versions, %{versions: state_versions, timeout: timeout} = state) do
+  def store_sync(versions, %{timeout: timeout} = state) do
+    # A task is used to allow for timeout handling
     task =
       Task.async(fn ->
-        with {:ok, versions, state} <- map_versions(versions, state, &get_version_transform/3),
-             {:ok, versions, state} <- map_versions(versions, state, &transform_version/3),
-             {:ok, versions, state} <- map_versions(versions, state, &postprocess_version/3),
-             {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_dir/3),
-             {:ok, versions, state} <- map_versions(versions, state, &get_version_filename/3),
-             {:ok, versions, state} <- map_versions(versions, state, &get_version_storage_opts/3),
-             {:ok, versions, state} <- map_versions(versions, state, &save_version/3) do
-          {:ok, %{state | versions: Map.merge(state_versions, Map.new(versions))}}
-        end
+        versions = sort_versions_by_dependencies(versions)
+
+        Enum.reduce(versions, {:ok, state}, fn
+          {version, _version_state}, {:ok, state} ->
+            store_version(version, state)
+        end)
       end)
 
     case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
       {:ok, result} -> result
       nil -> {:error, %{state | errors: :timeout}}
+    end
+  end
+
+  defp store_version(version, state) do
+    with {:ok, state} <- run_stage(state, version, &get_version_transform/3),
+         {:ok, state} <- run_stage(state, version, &transform_version/3),
+         {:ok, state} <- run_stage(state, version, &postprocess_version/3),
+         {:ok, state} <- run_stage(state, version, &get_version_storage_dir/3),
+         {:ok, state} <- run_stage(state, version, &get_version_filename/3),
+         {:ok, state} <- run_stage(state, version, &get_version_storage_opts/3),
+         {:ok, state} <- run_stage(state, version, &save_version/3) do
+      {:ok, state}
+    end
+  end
+
+  defp sort_versions_by_dependencies(versions) do
+    Enum.sort_by(versions, fn {version, %{dependencies: dependencies}} ->
+      cond do
+        # :original always comes first
+        version == :original ->
+          0
+
+        # Versions that are dependencies of other versions come second
+        Enum.any?(versions, fn {_other_version, %{dependencies: other_deps}} ->
+          version in other_deps
+        end) ->
+          1
+
+        # Versions that have dependencies come last
+        length(dependencies) > 0 ->
+          3
+
+        # Versions with no dependencies and not depended on by others
+        true ->
+          2
+      end
+    end)
+  end
+
+  defp run_stage(state, version, func) when is_function(func, 3) do
+    version_state = state.versions[version]
+
+    case func.(version_state, version, state) do
+      {:ok, version_state} ->
+        {:ok, update_state(state, version, version_state)}
+
+      {:error, stage, reason} ->
+        {:error, State.put_error(state, version, stage, reason)}
     end
   end
 
@@ -178,15 +224,16 @@ defmodule Trunk.Processor do
         {find_task_version(tasks, task), other}
     end)
     |> Enum.reduce(state, fn
-      {version, {:ok, map}}, %{versions: versions} = state ->
-        versions = Map.put(versions, version, map)
+      {version, {:ok, returned_state}}, %{versions: versions} = state ->
+        versions = Map.put(versions, version, returned_state.versions[version])
         %{state | versions: versions}
+
+      {version, {:error, %State{errors: errors} = returned_state}}, state ->
+        versions = Map.put(versions, version, returned_state.versions[version])
+        %{state | errors: errors, versions: versions}
 
       {version, {:error, error}}, state ->
         State.put_error(state, version, :processing, error)
-
-      {version, {:error, stage, error}}, state ->
-        State.put_error(state, version, stage, error)
     end)
     |> ok()
   end
@@ -278,10 +325,23 @@ defmodule Trunk.Processor do
   defp perform_transform(transform, %{path: path}) when is_function(transform),
     do: transform.(path)
 
-  defp perform_transform(transform, %{path: path} = state) do
+  defp perform_transform(transform, state) do
+    {source_path, transform} = get_source_path(state, transform)
     {:ok, temp_path} = create_temp_path(state, transform)
-    perform_transform(transform, path, temp_path)
+    perform_transform(transform, source_path, temp_path)
   end
+
+  defp get_source_path(%{versions: versions}, {command, version, args})
+       when is_atom(version) do
+    {versions[version].temp_path, {command, args}}
+  end
+
+  defp get_source_path(%{versions: versions}, {command, version, args, ext})
+       when is_atom(version) do
+    {versions[version].temp_path, {command, args, ext}}
+  end
+
+  defp get_source_path(%{path: path}, transform), do: {path, transform}
 
   defp perform_transform({command, arguments, _ext}, source, destination),
     do: perform_transform(command, arguments, source, destination)
@@ -355,8 +415,8 @@ defmodule Trunk.Processor do
          %{filename: from_filename, storage_dir: from_storage_dir} = _from_version_state,
          _old_state,
          %{filename: to_filename, storage_dir: to_storage_dir, storage_opts: version_storage_opts} =
-           to_version_state,
-         %{storage: storage, storage_opts: storage_opts}
+           _to_version_state,
+         %{storage: storage, storage_opts: storage_opts} = new_state
        ) do
     storage_opts = Keyword.merge(storage_opts, version_storage_opts)
 
@@ -370,7 +430,7 @@ defmodule Trunk.Processor do
         storage_opts
       )
 
-    {:ok, to_version_state}
+    {:ok, new_state}
   end
 
   # defp copy_files([], _filename, _storage, _storage_dir, _storate_opts), do: :ok
@@ -405,13 +465,13 @@ defmodule Trunk.Processor do
   end
 
   defp delete_version(
-         %{filename: filename, storage_dir: storage_dir} = version_state,
+         %{filename: filename, storage_dir: storage_dir},
          _version,
-         %{storage: storage, storage_opts: storage_opts}
+         %{storage: storage, storage_opts: storage_opts} = state
        ) do
     :ok = storage.delete(storage_dir, filename, storage_opts)
 
-    {:ok, version_state}
+    {:ok, state}
   end
 
   defp ok(%State{errors: nil} = state), do: {:ok, state}

@@ -248,8 +248,14 @@ defmodule Trunk.State do
       opts
       |> Keyword.fetch!(:versions)
       |> Map.new(fn version ->
+        {version, dependencies} =
+          case version do
+            {version, dependencies} -> {version, List.wrap(dependencies)}
+            version -> {version, []}
+          end
+
         assigns = version_assigns[version] || %{}
-        {version, %VersionState{assigns: assigns}}
+        {version, %VersionState{assigns: assigns, dependencies: dependencies}}
       end)
 
     %{state | versions: versions}

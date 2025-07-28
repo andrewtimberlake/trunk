@@ -22,7 +22,8 @@ defmodule Trunk.VersionState do
             assigns: %{},
             storage_dir: nil,
             filename: nil,
-            storage_opts: []
+            storage_opts: [],
+            dependencies: []
 
   @type t :: %__MODULE__{
           temp_path: String.t(),
@@ -30,7 +31,8 @@ defmodule Trunk.VersionState do
           assigns: map,
           storage_dir: String.t(),
           filename: String.t(),
-          storage_opts: Keyword.t()
+          storage_opts: Keyword.t(),
+          dependencies: list
         }
 
   @doc ~S"""

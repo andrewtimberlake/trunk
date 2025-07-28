@@ -93,6 +93,24 @@ defmodule TrunkTest do
     def transform(junk, version), do: super(junk, version)
   end
 
+  defmodule DependencyTrunk do
+    use Trunk,
+      versions: [:original, :bw, :thumb, bw_thumb: :bw],
+      storage: Trunk.Storage.Filesystem,
+      storage_opts: [path: unquote(output_path)]
+
+    @impl true
+    def storage_dir(%Trunk.State{scope: %{id: id}}, _version), do: "#{id}"
+
+    @impl true
+    def transform(_, :bw),
+      do: {:convert, "-strip -separate -poly 0.25,1,0.5,1,0.25,1 -type TrueColor", :jpg}
+
+    def transform(_, :thumb), do: {:convert, "-strip -thumbnail 100x100>"}
+    def transform(_, :bw_thumb), do: {:convert, :bw, "-strip -thumbnail 100x100>"}
+    def transform(junk, version), do: super(junk, version)
+  end
+
   setup do
     # Delete and recreate on setup rather than create on setup and create on exit
     #   because then the files can be visually inspected after a test
@@ -194,6 +212,25 @@ defmodule TrunkTest do
 
       assert geometry(original_file) == geometry(Path.join(output_path, "42/coffee.jpg"))
       assert "78x100" == geometry(Path.join(output_path, "42/coffee_thumb.jpg"))
+    end
+
+    test "store with dependencies async:false", %{output_path: output_path} do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+
+      {:ok, %Trunk.State{}} = DependencyTrunk.store(original_file, %{id: 42}, async: false)
+
+      assert geometry(original_file) == geometry(Path.join(output_path, "42/coffee.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "42/coffee_thumb.jpg"))
+      assert geometry(original_file) == geometry(Path.join(output_path, "42/coffee_bw.jpg"))
+      assert "78x100" == geometry(Path.join(output_path, "42/coffee_bw_thumb.jpg"))
+    end
+
+    test "store with dependencies async:true" do
+      original_file = Path.join(__DIR__, "fixtures/coffee.jpg")
+
+      assert_raise RuntimeError, "Dependencies are not supported in async mode yet", fn ->
+        DependencyTrunk.store(original_file, %{id: 42}, async: true)
+      end
     end
   end
 
